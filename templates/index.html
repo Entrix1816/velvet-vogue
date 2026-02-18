@@ -63,9 +63,9 @@
             color: #c88eaa;
         }
 
-        /* ===== FIX: Desktop nav links – only visible above 768px ===== */
+        /* Desktop Navigation Links - visible only above 768px */
         .nav-links {
-            display: none; /* hidden by default (mobile first) */
+            display: none; /* hidden on mobile by default */
             gap: 3rem;
             align-items: center;
         }
@@ -90,10 +90,11 @@
             text-shadow: 0 0 10px #dd9eb6;
         }
 
+        /* Cart icon - hidden as per design */
         .cart-icon {
             position: relative;
             font-size: 1.4rem;
-            display: none; /* hidden – we use mobile cart */
+            display: none;
         }
 
         .cart-count {
@@ -111,9 +112,9 @@
             box-shadow: 0 0 15px #ff99bb;
         }
 
-        /* Hamburger Menu – visible only on mobile (≤768px) */
+        /* Hamburger Menu - visible only on mobile (≤768px) */
         .hamburger-menu {
-            display: block; /* shown by default for mobile */
+            display: block; /* visible on mobile */
             cursor: pointer;
             z-index: 101;
         }
@@ -154,7 +155,7 @@
             transform: rotate(-45deg) translate(7px, -7px);
         }
 
-        /* Mobile Menu */
+        /* Mobile Menu - slides in from right */
         .mobile-menu {
             position: fixed;
             top: 0;
@@ -767,12 +768,8 @@
             display: none;
         }
 
-        /* ===== FIX: Remove conflicting media queries ===== */
-        /* (The original had duplicate/conflicting rules; we've consolidated above) */
-
-        /* Responsive */
+        /* Responsive styles */
         @media (max-width: 768px) {
-            /* Desktop nav-links already hidden via .nav-links {display:none} – no need to repeat */
             .navbar {
                 padding: 1rem 1.5rem;
             }
@@ -796,10 +793,18 @@
                 flex: 0 0 calc(100% - 1rem);
             }
 
-            .sales-title { font-size: 2rem; }
-            .sales-message { font-size: 1.1rem; }
+            .sales-title {
+                font-size: 2rem;
+            }
 
-            .footer-links { gap: 1rem; flex-direction: column; }
+            .sales-message {
+                font-size: 1.1rem;
+            }
+
+            .footer-links {
+                gap: 1rem;
+                flex-direction: column;
+            }
 
             .cart-float {
                 bottom: 1rem;
@@ -809,13 +814,6 @@
             .cart-badge {
                 padding: 0.6rem 1.2rem;
                 gap: 1rem;
-            }
-        }
-
-        /* ===== FIX: Ensure hamburger is hidden above 768px ===== */
-        @media (min-width: 769px) {
-            .hamburger-menu {
-                display: none !important; /* force hide on desktop */
             }
         }
     </style>
@@ -834,7 +832,7 @@
                 <a href="#contact">CONTACT</a>
             </div>
 
-            <!-- Hamburger Menu -->
+            <!-- Hamburger Menu - only visible on mobile -->
             <div class="hamburger-menu" id="hamburgerMenu">
                 <div class="hamburger-icon" id="hamburgerIcon">
                     <span></span>
@@ -844,7 +842,7 @@
             </div>
         </div>
 
-        <!-- Mobile Menu Dropdown -->
+        <!-- Mobile Menu Dropdown - slides in from right -->
         <div class="mobile-menu" id="mobileMenu">
             <a href="/collection" class="mobile-link">COLLECTION</a>
             <a href="#trending" class="mobile-link">TRENDING</a>
@@ -995,7 +993,6 @@
             </div>
         </div>
     </footer>
-
 
     <script>
         // ==================== HAMBURGER MENU ====================
