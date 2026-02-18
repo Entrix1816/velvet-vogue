@@ -518,14 +518,38 @@
             }
         }
 
-        // Check for existing session
-        document.addEventListener('DOMContentLoaded', function() {
-            const adminToken = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+        document.addEventListener('DOMContentLoaded', async function() {
+            const token = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
 
-            if (adminToken) {
-                window.location.href = '/admin';
+            if (token) {
+                try {
+                    // Verify token with the server
+                    const response = await fetch('/api/admin/verify-token', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (data.valid) {
+                        // Token is valid → redirect
+                        window.location.href = '/admin';
+                    } else {
+                        // Token invalid → remove it
+                        localStorage.removeItem('adminToken');
+                        sessionStorage.removeItem('adminToken');
+                    }
+                } catch (err) {
+                    console.error('Token verification failed', err);
+                    localStorage.removeItem('adminToken');
+                    sessionStorage.removeItem('adminToken');
+                }
             }
         });
+
     </script>
 </body>
 </html>
