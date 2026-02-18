@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>{{ product.name }} · Velvet Vogue</title>
     <style>
         * {
@@ -24,12 +24,18 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            background: rgba(10, 8, 10, 0.85);
+            background: rgba(10, 8, 10, 0.95);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
             border-bottom: 1px solid rgba(210, 140, 170, 0.2);
-            padding: 1rem 2rem;
+            padding: 0.8rem 1rem;
             animation: slideDown 0.8s ease-out;
+        }
+
+        @media (min-width: 768px) {
+            .navbar {
+                padding: 1rem 2rem;
+            }
         }
 
         @keyframes slideDown {
@@ -52,18 +58,20 @@
         }
 
         .logo {
-            font-size: 1.8rem;
+            font-size: 1.4rem;
             font-weight: 300;
-            letter-spacing: 4px;
+            letter-spacing: 3px;
             color: #ffd2e6;
             text-decoration: none;
             text-shadow: 0 0 10px #b76e79;
             transition: all 0.3s ease;
         }
 
-        .logo:hover {
-            text-shadow: 0 0 20px #ff99bb;
-            transform: scale(1.02);
+        @media (min-width: 768px) {
+            .logo {
+                font-size: 1.8rem;
+                letter-spacing: 4px;
+            }
         }
 
         .logo span {
@@ -72,7 +80,7 @@
 
         .nav-links {
             display: flex;
-            gap: 2rem;
+            gap: 1.5rem;
             align-items: center;
         }
 
@@ -81,31 +89,12 @@
             text-decoration: none;
             transition: all 0.3s ease;
             position: relative;
-        }
-
-        .nav-links a::after {
-            content: '';
-            position: absolute;
-            bottom: -5px;
-            left: 0;
-            width: 0;
-            height: 1px;
-            background: #c88eaa;
-            transition: width 0.3s ease;
-        }
-
-        .nav-links a:hover::after {
-            width: 100%;
-        }
-
-        .nav-links a:hover {
-            color: #ffdae9;
-            text-shadow: 0 0 10px #dd9eb6;
+            font-size: 0.9rem;
         }
 
         .cart-icon {
             position: relative;
-            font-size: 1.4rem;
+            font-size: 1.3rem;
         }
 
         .cart-count {
@@ -114,7 +103,7 @@
             right: -12px;
             background: #c88eaa;
             color: #0c0a0b;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             font-weight: 600;
             padding: 2px 6px;
             border-radius: 20px;
@@ -133,15 +122,29 @@
         .container {
             max-width: 1400px;
             margin: 0 auto;
-            padding: 2rem;
+            padding: 1rem;
         }
 
-        /* Back links with animation */
+        @media (min-width: 768px) {
+            .container {
+                padding: 2rem;
+            }
+        }
+
+        /* Back links */
         .back-links {
             display: flex;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
+            gap: 0.8rem;
+            margin-bottom: 1rem;
             animation: fadeInRight 0.6s ease-out;
+            flex-wrap: wrap;
+        }
+
+        @media (min-width: 768px) {
+            .back-links {
+                gap: 1rem;
+                margin-bottom: 1.5rem;
+            }
         }
 
         @keyframes fadeInRight {
@@ -155,60 +158,49 @@
             }
         }
 
-        .back-link {
+        .back-link, .continue-shopping {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
             color: #b295aa;
             text-decoration: none;
             transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            padding: 0.5rem 1.5rem;
+            padding: 0.5rem 1rem;
             border-radius: 40px;
             background: rgba(20, 15, 18, 0.5);
             border: 1px solid #4b3f47;
+            font-size: 0.9rem;
+            min-height: 44px; /* Better touch target */
         }
 
-        .back-link:hover {
-            color: #ffd2e6;
-            border-color: #d49bb2;
-            transform: translateX(-5px) scale(1.02);
-            background: rgba(40, 30, 35, 0.7);
-            box-shadow: 0 5px 15px rgba(200, 142, 170, 0.3);
-        }
-
-        .continue-shopping {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: #b295aa;
-            text-decoration: none;
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            padding: 0.5rem 1.5rem;
-            border-radius: 40px;
-            background: rgba(20, 15, 18, 0.5);
-            border: 1px solid #4b3f47;
-        }
-
-        .continue-shopping:hover {
-            color: #ffd2e6;
-            border-color: #d49bb2;
-            transform: translateX(5px) scale(1.02);
-            background: rgba(40, 30, 35, 0.7);
-            box-shadow: 0 5px 15px rgba(200, 142, 170, 0.3);
+        @media (min-width: 768px) {
+            .back-link, .continue-shopping {
+                padding: 0.5rem 1.5rem;
+                font-size: 1rem;
+            }
         }
 
         /* Product Detail */
         .product-detail {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 4rem;
+            grid-template-columns: 1fr;
+            gap: 2rem;
             margin-top: 1rem;
             background: rgba(18, 13, 16, 0.7);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(210, 150, 180, 0.2);
-            border-radius: 48px;
-            padding: 3rem;
+            border-radius: 24px;
+            padding: 1.5rem;
             animation: fadeInUp 0.8s ease-out;
+        }
+
+        @media (min-width: 768px) {
+            .product-detail {
+                grid-template-columns: 1fr 1fr;
+                gap: 4rem;
+                border-radius: 48px;
+                padding: 3rem;
+            }
         }
 
         @keyframes fadeInUp {
@@ -222,22 +214,34 @@
             }
         }
 
-        /* Gallery with auto-slide */
+        /* Gallery */
         .product-gallery {
             display: flex;
             flex-direction: column;
-            gap: 1.5rem;
+            gap: 1rem;
+        }
+
+        @media (min-width: 768px) {
+            .product-gallery {
+                gap: 1.5rem;
+            }
         }
 
         .main-image-container {
             position: relative;
             width: 100%;
             aspect-ratio: 3/4;
-            border-radius: 32px;
+            border-radius: 20px;
             overflow: hidden;
             border: 1px solid #4b3f47;
             box-shadow: 0 20px 30px -15px black;
             cursor: pointer;
+        }
+
+        @media (min-width: 768px) {
+            .main-image-container {
+                border-radius: 32px;
+            }
         }
 
         .main-image {
@@ -247,11 +251,7 @@
             transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
-        .main-image:hover {
-            transform: scale(1.05);
-        }
-
-        /* Auto-slide indicators */
+        /* Slide indicators */
         .slide-indicators {
             position: absolute;
             bottom: 1rem;
@@ -260,16 +260,25 @@
             display: flex;
             gap: 0.5rem;
             z-index: 10;
+            flex-wrap: wrap;
+            justify-content: center;
         }
 
         .slide-dot {
-            width: 10px;
-            height: 10px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             background: rgba(255, 255, 255, 0.5);
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
             border: 1px solid rgba(200, 142, 170, 0.5);
+        }
+
+        @media (min-width: 768px) {
+            .slide-dot {
+                width: 10px;
+                height: 10px;
+            }
         }
 
         .slide-dot.active {
@@ -278,28 +287,32 @@
             box-shadow: 0 0 15px #ff99bb;
         }
 
-        .slide-dot:hover {
-            background: #ffd2e6;
-            transform: scale(1.2);
-        }
-
-        /* Swipe indicator for mobile */
+        /* Swipe indicator */
         .swipe-indicator {
             position: absolute;
-            bottom: 1rem;
-            right: 1rem;
-            background: rgba(0, 0, 0, 0.6);
+            bottom: 0.5rem;
+            right: 0.5rem;
+            background: rgba(0, 0, 0, 0.7);
             color: white;
-            padding: 0.5rem 1rem;
+            padding: 0.4rem 0.8rem;
             border-radius: 40px;
-            font-size: 0.8rem;
-            display: none;
+            font-size: 0.7rem;
+            display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.3rem;
             backdrop-filter: blur(4px);
             border: 1px solid rgba(255, 255, 255, 0.2);
             z-index: 5;
             animation: pulseOpacity 2s infinite;
+        }
+
+        @media (min-width: 768px) {
+            .swipe-indicator {
+                bottom: 1rem;
+                right: 1rem;
+                padding: 0.5rem 1rem;
+                font-size: 0.8rem;
+            }
         }
 
         @keyframes pulseOpacity {
@@ -307,22 +320,23 @@
             50% { opacity: 1; }
         }
 
-        @media (max-width: 768px) {
-            .swipe-indicator {
-                display: flex;
-            }
-        }
-
         /* Thumbnail grid */
         .thumbnail-grid {
             display: flex;
-            gap: 1rem;
+            gap: 0.5rem;
             overflow-x: auto;
-            padding: 0.5rem 0;
+            padding: 0.3rem 0;
             scroll-snap-type: x mandatory;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: thin;
             scrollbar-color: #c88eaa #2f242b;
+        }
+
+        @media (min-width: 768px) {
+            .thumbnail-grid {
+                gap: 1rem;
+                padding: 0.5rem 0;
+            }
         }
 
         .thumbnail-grid::-webkit-scrollbar {
@@ -339,14 +353,10 @@
             border-radius: 10px;
         }
 
-        .thumbnail-grid::-webkit-scrollbar-thumb:hover {
-            background: #dbaac5;
-        }
-
         .thumbnail {
-            flex: 0 0 80px;
+            flex: 0 0 60px;
             aspect-ratio: 1;
-            border-radius: 16px;
+            border-radius: 12px;
             overflow: hidden;
             cursor: pointer;
             border: 2px solid transparent;
@@ -354,16 +364,16 @@
             scroll-snap-align: start;
         }
 
-        .thumbnail:hover {
-            border-color: #c88eaa;
-            transform: translateY(-3px) scale(1.05);
-            box-shadow: 0 5px 15px rgba(200, 142, 170, 0.5);
+        @media (min-width: 768px) {
+            .thumbnail {
+                flex: 0 0 80px;
+                border-radius: 16px;
+            }
         }
 
         .thumbnail.active {
             border-color: #f5b0cb;
             box-shadow: 0 0 20px #ff99bb;
-            transform: scale(1.02);
         }
 
         .thumbnail img {
@@ -376,8 +386,14 @@
         .product-info {
             display: flex;
             flex-direction: column;
-            gap: 1.5rem;
+            gap: 1rem;
             animation: fadeIn 0.8s ease-out 0.2s both;
+        }
+
+        @media (min-width: 768px) {
+            .product-info {
+                gap: 1.5rem;
+            }
         }
 
         @keyframes fadeIn {
@@ -386,62 +402,94 @@
         }
 
         .product-category {
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             text-transform: uppercase;
-            letter-spacing: 3px;
+            letter-spacing: 2px;
             color: #b295aa;
             animation: slideInLeft 0.6s ease-out;
         }
 
-        @keyframes slideInLeft {
-            from {
-                opacity: 0;
-                transform: translateX(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
+        @media (min-width: 768px) {
+            .product-category {
+                font-size: 0.9rem;
+                letter-spacing: 3px;
             }
         }
 
         .product-name {
-            font-size: 3rem;
+            font-size: 2rem;
             font-weight: 300;
             color: #ffd2e6;
             line-height: 1.2;
             animation: slideInLeft 0.6s ease-out 0.1s both;
         }
 
+        @media (min-width: 768px) {
+            .product-name {
+                font-size: 3rem;
+            }
+        }
+
         .product-price {
-            font-size: 2.5rem;
+            font-size: 2rem;
             font-weight: 300;
             color: #f5c6d5;
             text-shadow: 0 0 10px #c27995;
             animation: slideInLeft 0.6s ease-out 0.2s both;
         }
 
+        @media (min-width: 768px) {
+            .product-price {
+                font-size: 2.5rem;
+            }
+        }
+
         .product-price::before {
             content: '₦';
-            font-size: 1.5rem;
-            margin-right: 0.5rem;
+            font-size: 1.2rem;
+            margin-right: 0.3rem;
             color: #b295aa;
+        }
+
+        @media (min-width: 768px) {
+            .product-price::before {
+                font-size: 1.5rem;
+                margin-right: 0.5rem;
+            }
         }
 
         /* Stock Status */
         .stock-info {
             display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin: 1rem 0;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+            margin: 0.5rem 0;
             animation: slideInLeft 0.6s ease-out 0.3s both;
+        }
+
+        @media (min-width: 768px) {
+            .stock-info {
+                flex-direction: row;
+                align-items: center;
+                gap: 1rem;
+                margin: 1rem 0;
+            }
         }
 
         .stock-badge {
             display: inline-block;
-            padding: 0.5rem 1.5rem;
+            padding: 0.4rem 1rem;
             border-radius: 40px;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             letter-spacing: 1px;
+        }
+
+        @media (min-width: 768px) {
+            .stock-badge {
+                padding: 0.5rem 1.5rem;
+                font-size: 0.9rem;
+            }
         }
 
         .in-stock {
@@ -469,51 +517,81 @@
         }
 
         .product-description {
-            font-size: 1.1rem;
-            line-height: 1.8;
+            font-size: 0.95rem;
+            line-height: 1.6;
             color: #cfc0ca;
-            margin: 1rem 0;
+            margin: 0.5rem 0;
             animation: slideInLeft 0.6s ease-out 0.4s both;
         }
 
-        /* Multi-size selector */
+        @media (min-width: 768px) {
+            .product-description {
+                font-size: 1.1rem;
+                line-height: 1.8;
+                margin: 1rem 0;
+            }
+        }
+
+        /* Size selector */
         .size-selector {
-            margin: 1.5rem 0;
+            margin: 1rem 0;
             animation: slideInLeft 0.6s ease-out 0.5s both;
+        }
+
+        @media (min-width: 768px) {
+            .size-selector {
+                margin: 1.5rem 0;
+            }
         }
 
         .size-label {
             display: block;
-            margin-bottom: 1rem;
+            margin-bottom: 0.8rem;
             color: #b295aa;
             text-transform: uppercase;
             letter-spacing: 1px;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
 
         .size-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.8rem;
             background: rgba(30, 20, 25, 0.5);
-            border-radius: 30px;
-            padding: 1.5rem;
+            border-radius: 20px;
+            padding: 1rem;
             border: 1px solid #4b3f47;
+        }
+
+        @media (min-width: 768px) {
+            .size-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 1rem;
+                border-radius: 30px;
+                padding: 1.5rem;
+            }
         }
 
         .size-item {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 0.5rem;
-            padding: 1rem;
+            gap: 0.3rem;
+            padding: 0.8rem;
             background: rgba(20, 15, 18, 0.7);
-            border-radius: 20px;
+            border-radius: 16px;
             border: 1px solid #6f4d5e;
             transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
             animation: sizeItemAppear 0.5s ease-out;
             animation-fill-mode: both;
-            opacity: 1;
+        }
+
+        @media (min-width: 768px) {
+            .size-item {
+                gap: 0.5rem;
+                padding: 1rem;
+                border-radius: 20px;
+            }
         }
 
         .size-item.out-of-stock {
@@ -522,26 +600,27 @@
             pointer-events: none;
         }
 
-        .size-item.out-of-stock:hover {
-            transform: none;
-            border-color: #b55a5a;
-            box-shadow: 0 0 15px rgba(200, 70, 70, 0.3);
-        }
-
-        .size-item.low-stock {
-            border-color: #ffd9a3;
-            box-shadow: 0 0 10px rgba(255, 217, 163, 0.3);
-        }
-
         .size-name {
-            font-size: 1.2rem;
+            font-size: 1rem;
             font-weight: 600;
             color: #ffd2e6;
         }
 
+        @media (min-width: 768px) {
+            .size-name {
+                font-size: 1.2rem;
+            }
+        }
+
         .size-stock {
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             color: #b295aa;
+        }
+
+        @media (min-width: 768px) {
+            .size-stock {
+                font-size: 0.8rem;
+            }
         }
 
         .size-stock.available {
@@ -553,48 +632,39 @@
             animation: pulse 1.5s infinite;
         }
 
-        .size-stock.out {
-            color: #ffb3b3;
-        }
-
         .quantity-control {
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            margin-top: 0.5rem;
+            margin-top: 0.3rem;
         }
 
         .qty-btn {
-            width: 30px;
-            height: 30px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             border: 1px solid #a06f88;
             background: transparent;
             color: #ffd2e6;
             cursor: pointer;
             transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-            font-size: 1rem;
+            font-size: 0.9rem;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        .qty-btn:hover:not(:disabled) {
-            background: #ba87a4;
-            border-color: #ffbbd9;
-            color: black;
-            transform: scale(1.1);
-            box-shadow: 0 0 10px #ffb0cf;
-        }
-
-        .qty-btn:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
+        @media (min-width: 768px) {
+            .qty-btn {
+                width: 30px;
+                height: 30px;
+                font-size: 1rem;
+            }
         }
 
         .qty-value {
-            font-size: 1rem;
-            min-width: 30px;
+            font-size: 0.9rem;
+            min-width: 24px;
             text-align: center;
             color: #ffd2e6;
             font-weight: 500;
@@ -603,50 +673,60 @@
         /* Order summary */
         .order-summary {
             background: rgba(30, 20, 25, 0.7);
-            border-radius: 30px;
-            padding: 1.5rem;
-            margin: 1.5rem 0;
+            border-radius: 20px;
+            padding: 1rem;
+            margin: 1rem 0;
             border: 1px solid #c88eaa;
             animation: slideInLeft 0.6s ease-out 0.8s both;
         }
 
+        @media (min-width: 768px) {
+            .order-summary {
+                border-radius: 30px;
+                padding: 1.5rem;
+                margin: 1.5rem 0;
+            }
+        }
+
         .summary-title {
-            font-size: 1rem;
+            font-size: 0.9rem;
             color: #b295aa;
-            margin-bottom: 1rem;
+            margin-bottom: 0.8rem;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
 
         .summary-items {
-            max-height: 200px;
+            max-height: 150px;
             overflow-y: auto;
-            margin-bottom: 1rem;
+            margin-bottom: 0.8rem;
         }
 
         .summary-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.5rem 0;
+            padding: 0.4rem 0;
             border-bottom: 1px solid #4b3f47;
-            font-size: 0.95rem;
-        }
-
-        .summary-item:last-child {
-            border-bottom: none;
+            font-size: 0.85rem;
         }
 
         .summary-total {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 1rem;
-            padding-top: 1rem;
+            margin-top: 0.8rem;
+            padding-top: 0.8rem;
             border-top: 2px solid #c88eaa;
-            font-size: 1.2rem;
+            font-size: 1rem;
             font-weight: 600;
             color: #f5c6d5;
+        }
+
+        @media (min-width: 768px) {
+            .summary-total {
+                font-size: 1.2rem;
+            }
         }
 
         /* Add to cart button */
@@ -654,45 +734,28 @@
             background: transparent;
             border: 2px solid #c293ae;
             color: #fadff2;
-            padding: 1.5rem 3rem;
+            padding: 1rem 1.5rem;
             border-radius: 60px;
-            font-size: 1.2rem;
+            font-size: 1rem;
             cursor: pointer;
             transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
             text-transform: uppercase;
             letter-spacing: 2px;
             backdrop-filter: blur(4px);
             width: 100%;
-            margin-top: 1rem;
+            margin-top: 0.5rem;
             position: relative;
             overflow: hidden;
             animation: slideInLeft 0.6s ease-out 0.9s both;
+            min-height: 60px;
         }
 
-        .add-to-cart-btn::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(200, 142, 170, 0.3);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s ease, height 0.6s ease;
-        }
-
-        .add-to-cart-btn:hover::before {
-            width: 300px;
-            height: 300px;
-        }
-
-        .add-to-cart-btn:hover:not(:disabled) {
-            background: #c997b5;
-            border-color: #ffc0dd;
-            color: #0c080b;
-            box-shadow: 0 0 50px #f7a9cb;
-            transform: scale(1.02) translateY(-2px);
+        @media (min-width: 768px) {
+            .add-to-cart-btn {
+                padding: 1.5rem 3rem;
+                font-size: 1.2rem;
+                margin-top: 1rem;
+            }
         }
 
         .add-to-cart-btn:disabled {
@@ -714,29 +777,51 @@
 
         /* Related Products */
         .related-section {
-            margin-top: 4rem;
+            margin-top: 2rem;
             animation: fadeInUp 0.8s ease-out 0.5s both;
         }
 
+        @media (min-width: 768px) {
+            .related-section {
+                margin-top: 4rem;
+            }
+        }
+
         .related-title {
-            font-size: 2rem;
+            font-size: 1.5rem;
             font-weight: 300;
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
             color: #ffd2e6;
-            border-left: 6px solid #c88eaa;
-            padding-left: 1.5rem;
+            border-left: 4px solid #c88eaa;
+            padding-left: 1rem;
+        }
+
+        @media (min-width: 768px) {
+            .related-title {
+                font-size: 2rem;
+                border-left: 6px solid #c88eaa;
+                padding-left: 1.5rem;
+                margin-bottom: 2rem;
+            }
         }
 
         .related-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1rem;
+        }
+
+        @media (min-width: 768px) {
+            .related-grid {
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 2rem;
+            }
         }
 
         .related-card {
             background: #161316;
-            border-radius: 28px;
-            padding: 1.5rem;
+            border-radius: 20px;
+            padding: 1rem;
             border: 1px solid #362c33;
             transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
             cursor: pointer;
@@ -747,10 +832,12 @@
             animation: cardAppear 0.6s ease-out forwards;
         }
 
-        .related-card:nth-child(1) { animation-delay: 0.6s; }
-        .related-card:nth-child(2) { animation-delay: 0.7s; }
-        .related-card:nth-child(3) { animation-delay: 0.8s; }
-        .related-card:nth-child(4) { animation-delay: 0.9s; }
+        @media (min-width: 768px) {
+            .related-card {
+                border-radius: 28px;
+                padding: 1.5rem;
+            }
+        }
 
         @keyframes cardAppear {
             from {
@@ -763,19 +850,19 @@
             }
         }
 
-        .related-card:hover {
-            transform: translateY(-12px) scale(1.03);
-            border-color: #d49eb0;
-            box-shadow: 0 0 28px #cc7a99, 0 10px 30px -5px black;
-            background: #1d181d;
-        }
-
         .related-image {
             width: 100%;
             aspect-ratio: 1;
-            border-radius: 20px;
+            border-radius: 16px;
             overflow: hidden;
-            margin-bottom: 1rem;
+            margin-bottom: 0.8rem;
+        }
+
+        @media (min-width: 768px) {
+            .related-image {
+                border-radius: 20px;
+                margin-bottom: 1rem;
+            }
         }
 
         .related-image img {
@@ -785,19 +872,28 @@
             transition: transform 0.6s ease;
         }
 
-        .related-card:hover .related-image img {
-            transform: scale(1.1);
+        .related-name {
+            font-size: 0.9rem;
+            color: #ffeaf3;
+            margin-bottom: 0.2rem;
         }
 
-        .related-name {
-            font-size: 1.2rem;
-            color: #ffeaf3;
-            margin-bottom: 0.3rem;
+        @media (min-width: 768px) {
+            .related-name {
+                font-size: 1.2rem;
+                margin-bottom: 0.3rem;
+            }
         }
 
         .related-price {
-            font-size: 1.2rem;
+            font-size: 0.9rem;
             color: #f5cdd9;
+        }
+
+        @media (min-width: 768px) {
+            .related-price {
+                font-size: 1.2rem;
+            }
         }
 
         .related-price::before {
@@ -809,26 +905,50 @@
         /* Toast */
         .toast {
             position: fixed;
-            bottom: 2rem;
-            left: 2rem;
+            bottom: 1rem;
+            left: 1rem;
+            right: 1rem;
             background: #1d141b;
             border: 1px solid #d49bb2;
             border-radius: 60px;
-            padding: 1rem 2rem;
+            padding: 1rem;
             color: #ffdfee;
             box-shadow: 0 0 50px #ad6185;
             z-index: 1000;
             animation: slideInLeft 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        @media (min-width: 768px) {
+            .toast {
+                bottom: 2rem;
+                left: 2rem;
+                right: auto;
+                padding: 1rem 2rem;
+                font-size: 1rem;
+            }
         }
 
         /* Floating Cart */
         .cart-float {
             position: fixed;
-            bottom: 2rem;
-            right: 2rem;
+            bottom: 1rem;
+            right: 1rem;
+            left: 1rem;
             z-index: 99;
             pointer-events: none;
             animation: slideInRight 0.8s ease 1s both;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        @media (min-width: 768px) {
+            .cart-float {
+                bottom: 2rem;
+                right: 2rem;
+                left: auto;
+            }
         }
 
         @keyframes slideInRight {
@@ -846,90 +966,80 @@
             background: #1f1a1e;
             border: 1px solid #b48299;
             border-radius: 60px;
-            padding: 0.8rem 2rem;
+            padding: 0.6rem 1rem;
             box-shadow: 0 0 30px #c06080;
             backdrop-filter: blur(10px);
             display: inline-flex;
             align-items: center;
-            gap: 1.5rem;
+            gap: 1rem;
             pointer-events: auto;
             color: #fff0f5;
             transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            max-width: 100%;
         }
 
-        .cart-badge:hover {
-            transform: scale(1.05) translateY(-5px);
-            box-shadow: 0 0 50px #ff99bb;
+        @media (min-width: 768px) {
+            .cart-badge {
+                padding: 0.8rem 2rem;
+                gap: 1.5rem;
+            }
         }
 
         .cart-count-badge {
             background: #c88eaa;
             color: #0f0c0e;
             border-radius: 40px;
-            padding: 0.25rem 1rem;
+            padding: 0.2rem 0.8rem;
             font-weight: 600;
-            font-size: 1.1rem;
+            font-size: 0.9rem;
+        }
+
+        @media (min-width: 768px) {
+            .cart-count-badge {
+                padding: 0.25rem 1rem;
+                font-size: 1.1rem;
+            }
         }
 
         .view-cart-btn {
             background: transparent;
             border: 1px solid #edd2dc;
             color: #ffe5f0;
-            padding: 0.4rem 1.5rem;
+            padding: 0.4rem 1rem;
             border-radius: 40px;
             cursor: pointer;
             transition: 0.3s;
             text-decoration: none;
-            font-size: 0.95rem;
+            font-size: 0.85rem;
+            white-space: nowrap;
         }
 
-        .view-cart-btn:hover {
-            background: #f3cddd;
-            color: #131013;
-            border-color: #ffffff;
+        @media (min-width: 768px) {
+            .view-cart-btn {
+                padding: 0.4rem 1.5rem;
+                font-size: 0.95rem;
+            }
         }
 
-        /* Mobile responsive */
-        @media (max-width: 768px) {
-            .product-detail {
-                grid-template-columns: 1fr;
-                gap: 2rem;
-                padding: 1.5rem;
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
             }
-
-            .product-name {
-                font-size: 2rem;
+            to {
+                opacity: 1;
+                transform: translateX(0);
             }
+        }
 
-            .product-price {
-                font-size: 2rem;
+        @keyframes sizeItemAppear {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
             }
-
-            .size-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-
-            .navbar {
-                padding: 1rem;
-            }
-
-            .logo {
-                font-size: 1.4rem;
-            }
-
-            .back-links {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-
-            .cart-float {
-                bottom: 1rem;
-                right: 1rem;
-            }
-
-            .cart-badge {
-                padding: 0.6rem 1.2rem;
-                gap: 1rem;
+            to {
+                opacity: 1;
+                transform: scale(1);
             }
         }
     </style>
@@ -964,27 +1074,28 @@
                     <img src="{{ product.image_urls[0] if product.image_urls else 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=2070&auto=format&fit=crop' }}"
                          alt="{{ product.name }}"
                          class="main-image"
-                         id="mainImage">
+                         id="mainImage"
+                         loading="lazy">
 
                     <!-- Slide indicators -->
                     {% if product.image_urls and product.image_urls|length > 1 %}
                     <div class="slide-indicators" id="slideIndicators">
                         {% for image in product.image_urls %}
-                        <span class="slide-dot {% if loop.first %}active{% endif %}" onclick="goToSlide({{ loop.index0 }})"></span>
+                        <span class="slide-dot {% if loop.first %}active{% endif %}" onclick="goToSlide({{ loop.index0 }})" role="button" tabindex="0" aria-label="Go to image {{ loop.index }}"></span>
                         {% endfor %}
                     </div>
                     {% endif %}
 
                     <div class="swipe-indicator">
-                        <span>←</span> SWIPE TO BROWSE <span>→</span>
+                        <span>←</span> SWIPE <span>→</span>
                     </div>
                 </div>
 
                 {% if product.image_urls and product.image_urls|length > 1 %}
                 <div class="thumbnail-grid" id="thumbnailGrid">
                     {% for image in product.image_urls %}
-                    <div class="thumbnail {% if loop.first %}active{% endif %}" onclick="changeImage({{ loop.index0 }})">
-                        <img src="{{ image }}" alt="{{ product.name }}">
+                    <div class="thumbnail {% if loop.first %}active{% endif %}" onclick="changeImage({{ loop.index0 }})" role="button" tabindex="0" aria-label="View image {{ loop.index }}">
+                        <img src="{{ image }}" alt="{{ product.name }} thumbnail {{ loop.index }}" loading="lazy">
                     </div>
                     {% endfor %}
                 </div>
@@ -1003,10 +1114,10 @@
                         <span class="stock-badge sold-out">SOLD OUT</span>
                     {% elif product.stock < 5 %}
                         <span class="stock-badge low-stock">only {{ product.stock }} left</span>
-                        <span style="color: #b295aa;">hurry, almost gone!</span>
+                        <span style="color: #b295aa; font-size: 0.85rem;">hurry, almost gone!</span>
                     {% else %}
                         <span class="stock-badge in-stock">in stock</span>
-                        <span style="color: #b295aa;">{{ product.stock }} available across sizes</span>
+                        <span style="color: #b295aa; font-size: 0.85rem;">{{ product.stock }} available</span>
                     {% endif %}
                 </div>
 
@@ -1034,16 +1145,18 @@
                                             <span class="size-name">{{ size_name }}</span>
                                             {% if qty > 0 %}
                                                 <span class="size-stock {% if qty < 3 %}low{% else %}available{% endif %}">
-                                                    {{ qty }} available
+                                                    {{ qty }} avail
                                                 </span>
                                                 <div class="quantity-control">
                                                     <button class="qty-btn" onclick="updateSizeQuantity('{{ size_code }}', -1)"
                                                             id="btn_{{ size_code }}_minus"
-                                                            {% if qty == 0 %}disabled{% endif %}>−</button>
+                                                            {% if qty == 0 %}disabled{% endif %}
+                                                            aria-label="Decrease quantity for size {{ size_name }}">−</button>
                                                     <span class="qty-value" id="qty_{{ size_code }}">0</span>
                                                     <button class="qty-btn" onclick="updateSizeQuantity('{{ size_code }}', 1)"
                                                             id="btn_{{ size_code }}_plus"
-                                                            {% if qty == 0 %}disabled{% endif %}>+</button>
+                                                            {% if qty == 0 %}disabled{% endif %}
+                                                            aria-label="Increase quantity for size {{ size_name }}">+</button>
                                                 </div>
                                             {% else %}
                                                 <span class="size-stock out">OUT OF STOCK</span>
@@ -1060,14 +1173,16 @@
                                     <span class="size-name">ONE SIZE</span>
                                     {% if product.stock > 0 %}
                                         <span class="size-stock {% if product.stock < 3 %}low{% else %}available{% endif %}">
-                                            {{ product.stock }} available
+                                            {{ product.stock }} avail
                                         </span>
                                         <div class="quantity-control">
                                             <button class="qty-btn" onclick="updateSizeQuantity('OS', -1)"
-                                                    id="btn_OS_minus">−</button>
+                                                    id="btn_OS_minus"
+                                                    aria-label="Decrease quantity">−</button>
                                             <span class="qty-value" id="qty_OS">0</span>
                                             <button class="qty-btn" onclick="updateSizeQuantity('OS', 1)"
-                                                    id="btn_OS_plus">+</button>
+                                                    id="btn_OS_plus"
+                                                    aria-label="Increase quantity">+</button>
                                         </div>
                                     {% else %}
                                         <span class="size-stock out">OUT OF STOCK</span>
@@ -1108,7 +1223,7 @@
                 <a href="/product/{{ related_product.id }}" class="related-card">
                     <div class="related-image">
                         {% if related_product.image_urls and related_product.image_urls|length > 0 %}
-                            <img src="{{ related_product.image_urls[0] }}" alt="{{ related_product.name }}">
+                            <img src="{{ related_product.image_urls[0] }}" alt="{{ related_product.name }}" loading="lazy">
                         {% else %}
                             <div style="background: #2f242b; width: 100%; height: 100%;"></div>
                         {% endif %}
@@ -1174,22 +1289,10 @@
             {% for size, qty in product.sizes.items() %}
                 sizeQuantities['{{ size }}'] = 0;
                 sizeMaxStock['{{ size }}'] = {{ qty }};
-                sizeElements['{{ size }}'] = {
-                    minusBtn: document.getElementById('btn_{{ size }}_minus'),
-                    plusBtn: document.getElementById('btn_{{ size }}_plus'),
-                    qtySpan: document.getElementById('qty_{{ size }}'),
-                    item: document.getElementById('size-item-{{ size }}')
-                };
             {% endfor %}
         {% else %}
             sizeQuantities['OS'] = 0;
             sizeMaxStock['OS'] = {{ product.stock }};
-            sizeElements['OS'] = {
-                minusBtn: document.getElementById('btn_OS_minus'),
-                plusBtn: document.getElementById('btn_OS_plus'),
-                qtySpan: document.getElementById('qty_OS'),
-                item: document.getElementById('size-item-OS')
-            };
         {% endif %}
 
         // Update size quantity
@@ -1197,7 +1300,6 @@
             const currentQty = sizeQuantities[size] || 0;
             const maxStock = sizeMaxStock[size] || 0;
 
-            // Don't allow if size is out of stock
             if (maxStock === 0) {
                 showToast('This size is out of stock', 'error');
                 return;
@@ -1210,14 +1312,12 @@
                 const qtyElement = document.getElementById(`qty_${size}`);
                 if (qtyElement) qtyElement.textContent = newQty;
 
-                // Update button states
                 const minusBtn = document.getElementById(`btn_${size}_minus`);
                 const plusBtn = document.getElementById(`btn_${size}_plus`);
 
                 if (minusBtn) minusBtn.disabled = newQty <= 0;
                 if (plusBtn) plusBtn.disabled = newQty >= maxStock;
 
-                // Animate the size item
                 const sizeItem = document.querySelector(`.size-item[data-size="${size}"]`);
                 if (sizeItem) {
                     sizeItem.style.transform = 'scale(0.98)';
@@ -1270,25 +1370,13 @@
             if (totalAmountSpan) totalAmountSpan.textContent = `₦${totalPrice.toLocaleString()}`;
         }
 
-        // Add to cart with multiple sizes
+        // Add to cart
         window.addToCart = async function() {
             const selectedSizes = Object.entries(sizeQuantities).filter(([size, qty]) => qty > 0);
 
             if (selectedSizes.length === 0) {
                 showToast('Please select at least one size', 'error');
                 return;
-            }
-
-            // Check if any selected size is out of stock
-            for (const [size, qty] of selectedSizes) {
-                if (sizeMaxStock[size] === 0) {
-                    showToast(`Size ${size} is out of stock`, 'error');
-                    return;
-                }
-                if (qty > sizeMaxStock[size]) {
-                    showToast(`Only ${sizeMaxStock[size]} available in size ${size}`, 'error');
-                    return;
-                }
             }
 
             const button = document.getElementById('addToCartBtn');
@@ -1299,7 +1387,6 @@
 
             try {
                 let successCount = 0;
-                let errorMessages = [];
 
                 for (const [size, qty] of selectedSizes) {
                     const response = await fetch('/api/cart/add', {
@@ -1333,8 +1420,6 @@
                                 image: productImage
                             });
                         }
-                    } else {
-                        errorMessages.push(`Size ${size}: ${data.error}`);
                     }
                 }
 
@@ -1345,7 +1430,6 @@
                     button.classList.add('added');
                     showToast(`✨ Added ${successCount} item${successCount > 1 ? 's' : ''} to cart`);
 
-                    // Reset quantities
                     for (const size in sizeQuantities) {
                         sizeQuantities[size] = 0;
                         const qtyElement = document.getElementById(`qty_${size}`);
@@ -1366,10 +1450,6 @@
                     }, 2000);
                 }
 
-                if (errorMessages.length > 0) {
-                    showToast(errorMessages.join(', '), 'error');
-                }
-
             } catch (error) {
                 console.error('Error:', error);
                 button.textContent = originalText;
@@ -1378,7 +1458,7 @@
             }
         };
 
-        // Image Gallery with Auto-slide
+        // Image Gallery
         let currentImageIndex = 0;
         const images = {{ product.image_urls|tojson if product.image_urls else '[]' }};
         const mainImage = document.getElementById('mainImage');
@@ -1475,22 +1555,11 @@
             startAutoSlide();
             updateOrderSummary();
 
-            // Initialize button states for out of stock sizes
             for (const [size, max] of Object.entries(sizeMaxStock)) {
                 const minusBtn = document.getElementById(`btn_${size}_minus`);
                 const plusBtn = document.getElementById(`btn_${size}_plus`);
-                if (minusBtn) {
-                    minusBtn.disabled = true;
-                }
-                if (plusBtn) {
-                    plusBtn.disabled = max === 0;
-                }
-
-                // Disable the entire size item if out of stock
-                const sizeItem = document.getElementById(`size-item-${size}`);
-                if (sizeItem && max === 0) {
-                    sizeItem.classList.add('out-of-stock');
-                }
+                if (minusBtn) minusBtn.disabled = true;
+                if (plusBtn) plusBtn.disabled = max === 0;
             }
         });
 
@@ -1500,17 +1569,9 @@
             toast.className = 'toast';
             toast.textContent = message;
             toast.style.background = type === 'error' ? '#3d1a1a' : '#1d141b';
-            toast.style.borderColor = type === 'error' ? '#b55a5a' : '#d49bb2';
             document.body.appendChild(toast);
-
-            setTimeout(() => {
-                toast.remove();
-            }, 3000);
+            setTimeout(() => toast.remove(), 3000);
         }
-
-        // Make functions globally available
-        window.addToCart = addToCart;
-        window.updateSizeQuantity = updateSizeQuantity;
     </script>
 </body>
 </html>
