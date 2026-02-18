@@ -63,10 +63,17 @@
             color: #c88eaa;
         }
 
+        /* ===== FIX: Desktop nav links – only visible above 768px ===== */
         .nav-links {
-            display: flex;
+            display: none; /* hidden by default (mobile first) */
             gap: 3rem;
             align-items: center;
+        }
+
+        @media (min-width: 769px) {
+            .nav-links {
+                display: flex; /* show only on desktop */
+            }
         }
 
         .nav-links a {
@@ -86,6 +93,7 @@
         .cart-icon {
             position: relative;
             font-size: 1.4rem;
+            display: none; /* hidden – we use mobile cart */
         }
 
         .cart-count {
@@ -103,11 +111,17 @@
             box-shadow: 0 0 15px #ff99bb;
         }
 
-        /* Hamburger Menu */
+        /* Hamburger Menu – visible only on mobile (≤768px) */
         .hamburger-menu {
-            display: none;
+            display: block; /* shown by default for mobile */
             cursor: pointer;
             z-index: 101;
+        }
+
+        @media (min-width: 769px) {
+            .hamburger-menu {
+                display: none; /* hidden on desktop */
+            }
         }
 
         .hamburger-icon {
@@ -753,16 +767,12 @@
             display: none;
         }
 
+        /* ===== FIX: Remove conflicting media queries ===== */
+        /* (The original had duplicate/conflicting rules; we've consolidated above) */
+
         /* Responsive */
         @media (max-width: 768px) {
-            .nav-links {
-                display: none;
-            }
-
-            .hamburger-menu {
-                display: block;
-            }
-
+            /* Desktop nav-links already hidden via .nav-links {display:none} – no need to repeat */
             .navbar {
                 padding: 1rem 1.5rem;
             }
@@ -802,13 +812,10 @@
             }
         }
 
+        /* ===== FIX: Ensure hamburger is hidden above 768px ===== */
         @media (min-width: 769px) {
             .hamburger-menu {
-                display: block;
-            }
-
-            .mobile-menu {
-                width: 400px;
+                display: none !important; /* force hide on desktop */
             }
         }
     </style>
