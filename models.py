@@ -2,6 +2,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from sqlalchemy.dialects.postgresql import ARRAY, JSON
+from decimal import Decimal
 
 db = SQLAlchemy()
 
@@ -49,13 +50,13 @@ class Product(db.Model):
     category = db.relationship('Category', overlaps="category_ref,products")
 
     # Size-based inventory
-    sizes = db.Column(JSON, default={})  # Format: {"S": 5, "M": 10, "L": 5, "XL": 2}
+    sizes = db.Column(JSON, default=dict)  # Format: {"S": 5, "M": 10, "L": 5, "XL": 2}
 
     # Total stock (calculated from sizes)
     stock = db.Column(db.Integer, default=0, nullable=False)
 
     sold_count = db.Column(db.Integer, default=0)
-    image_urls = db.Column(ARRAY(db.String(500)), default=[])
+    image_urls = db.Column(ARRAY(db.String(500)), default=list)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def calculate_total_stock(self):
@@ -123,7 +124,7 @@ class Order(db.Model):
 
     # Order financials
     subtotal = db.Column(db.Numeric(10, 2), nullable=False)
-    delivery_fee = db.Column(db.Numeric(10, 2), nullable=False, default=2500.00)
+    delivery_fee = db.Column(db.Numeric(10, 2), default=Decimal(2500.00))
     total_amount = db.Column(db.Numeric(10, 2), nullable=False)
 
     # Payment details

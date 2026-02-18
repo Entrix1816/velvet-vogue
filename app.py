@@ -20,7 +20,12 @@ app = Flask(__name__)
 
 # -------------------- CONFIGURATION FROM ENV --------------------
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
+database_url = os.getenv("DATABASE_URL")
+
+if database_url and database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = os.getenv('SQLALCHEMY_TRACK_MODIFICATIONS', 'False').lower() == 'true'
 app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', 'static/uploads')
 app.config['MAX_CONTENT_LENGTH'] = int(os.getenv('MAX_UPLOAD_SIZE_MB', 16)) * 1024 * 1024
@@ -51,12 +56,6 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 
 db.init_app(app)
-with app.app_context():
-    try:
-        db.create_all()
-        print("✅ Database tables created")
-    except Exception as e:
-        print("❌ DB creation failed:", e)
 
 
 # After db.init_app(app)
@@ -160,7 +159,10 @@ def filter_collection():
             size_filters = []
             for size in sizes:
                 size_filters.append(
-                    db.cast(Product.sizes[size], db.Integer) > 0
+                    db.func.coalesce(
+                        Product.sizes[size].astext.cast(db.Integer),
+                        0
+                    ) > 0
                 )
             if size_filters:
                 query = query.filter(db.or_(*size_filters))
@@ -462,8 +464,6 @@ def checkout_page():
     delivery_fee = 2500
     total = subtotal + delivery_fee
 
-    # Debug print to verify key is being passed
-    print(f"🔑 Paystack Public Key: {app.config['PAYSTACK_PUBLIC_KEY']}")
 
     return render_template('checkout.html',
                            cart_items=cart_items,
@@ -986,9 +986,23 @@ def api_checkout():
 
             # Update stock ONLY if payment is confirmed (paid)
             if data.get('payment_status') == 'paid':
-                sizes = dict(product.sizes)
+
+                product = (
+                    db.session.query(Product)
+                    .filter_by(id=product_id)
+                    .with_for_update()
+                    .first()
+                )
+
+                sizes = dict(product.sizes or {})
                 current_stock = sizes.get(item['size'], 0)
-                sizes[item['size']] = current_stock - item['quantity']
+
+                if current_stock < item['quantity']:
+                    raise ValueError(f"Insufficient stock for size {item['size']}")
+
+                new_qty = current_stock - item['quantity']
+
+                sizes[item['size']] = new_qty
                 product.sizes = sizes
                 product.stock = sum(sizes.values())
                 product.sold_count += item['quantity']
@@ -1193,6 +1207,4 @@ with app.app_context():
 
 if __name__ == '__main__':
     # Create tables if they don't exist
-    with app.app_context():
-        db.create_all()
     app.run(debug=app.config['DEBUG'])
