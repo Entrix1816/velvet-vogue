@@ -1,5 +1,8 @@
 from contextlib import contextmanager
+from sqlalchemy.orm import joinedload
 import logging
+import cloudinary
+import cloudinary.uploader
 import os
 from datetime import datetime
 import uuid
@@ -8,7 +11,7 @@ import secrets
 from email_service import EmailService
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash, abort
-from sqlalchemy.dialects.postgresql import ARRAY, JSON
+import cloudinary.api
 from sqlalchemy import and_, func, or_
 from werkzeug.utils import secure_filename
 from models import db, User, Category, Product, Order, OrderItem, Cart, FailedEmail
@@ -22,6 +25,8 @@ load_dotenv()
 
 app = Flask(__name__)
 
+cloudinary.config(secure=True)
+
 # -------------------- CONFIGURATION FROM ENV --------------------
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 database_url = os.getenv("DATABASE_URL")
@@ -31,7 +36,6 @@ if database_url and database_url.startswith("postgres://"):
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = os.getenv('SQLALCHEMY_TRACK_MODIFICATIONS', 'False').lower() == 'true'
-app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', 'static/uploads')
 app.config['MAX_CONTENT_LENGTH'] = int(os.getenv('MAX_UPLOAD_SIZE_MB', 16)) * 1024 * 1024
 app.config['FLASK_ENV'] = os.getenv('FLASK_ENV', 'production')
 app.config['DEBUG'] = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
@@ -65,9 +69,6 @@ if app.config['FLASK_ENV'] == 'production':
 # Admin configuration
 app.config['ADMIN_EMAIL'] = os.getenv('ADMIN_EMAIL')
 app.config['ADMIN_PASSWORD_HASH'] = os.getenv('ADMIN_PASSWORD_HASH')
-
-# Ensure upload directory exists
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Initialize database
 db.init_app(app)
@@ -797,12 +798,26 @@ def add_product():
                     ext = filename.split('.')[-1] if '.' in filename else ''
                     unique_name = f"{uuid.uuid4().hex}.{ext}" if ext else uuid.uuid4().hex
 
-                    # Save file
-                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
-                    file.save(file_path)
+                    # Handle multiple image uploads via Cloudinary
+                    image_urls = []
 
-                    # Store relative path for database
-                    image_urls.append(f"/static/uploads/{unique_name}")
+                    if 'images[]' in request.files:
+                        files = request.files.getlist('images[]')
+
+                        for file in files:
+                            if file and file.filename:
+                                try:
+                                    upload_result = cloudinary.uploader.upload(
+                                        file,
+                                        folder="velvet_vogue/products",
+                                        public_id=f"{uuid.uuid4().hex}",
+                                        resource_type="image"
+                                    )
+
+                                    image_urls.append(upload_result['secure_url'])
+
+                                except Exception as upload_error:
+                                    logger.error(f"Cloudinary upload failed: {str(upload_error)}")
 
         # Create new product
         product = Product(
@@ -861,22 +876,27 @@ def edit_product(product_id):
             product.sizes = sizes
             product.stock = sum(sizes.values())
 
-        # Handle new images if uploaded
         if 'images[]' in request.files:
             files = request.files.getlist('images[]')
             new_images = []
+
             for file in files:
                 if file and file.filename:
-                    filename = secure_filename(file.filename)
-                    ext = filename.split('.')[-1] if '.' in filename else ''
-                    unique_name = f"{uuid.uuid4().hex}.{ext}" if ext else uuid.uuid4().hex
-                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
-                    file.save(file_path)
-                    new_images.append(f"/static/uploads/{unique_name}")
+                    try:
+                        upload_result = cloudinary.uploader.upload(
+                            file,
+                            folder="velvet_vogue/products",
+                            public_id=f"{uuid.uuid4().hex}",
+                            resource_type="image"
+                        )
 
-            # Append new images to existing ones
+                        new_images.append(upload_result['secure_url'])
+
+                    except Exception as upload_error:
+                        logger.error(f"Cloudinary upload failed: {str(upload_error)}")
+
             if new_images:
-                product.image_urls = product.image_urls + new_images
+                product.image_urls = (product.image_urls or []) + new_images
 
         db.session.commit()
         flash('Product updated successfully', 'success')
@@ -969,16 +989,19 @@ def delete_product(product_id):
             flash('Cannot delete product that has been ordered', 'error')
             return redirect(url_for('admin_panel', _anchor='products'))
 
-        # Delete image files from server
+        import cloudinary.api
+
         for img_url in product.image_urls or []:
-            if img_url and img_url.startswith('/static/uploads/'):
-                file_path = img_url.replace('/static/uploads/', '')
-                full_path = os.path.join(app.config['UPLOAD_FOLDER'], file_path)
-                if os.path.exists(full_path):
-                    try:
-                        os.remove(full_path)
-                    except OSError as e:
-                        logger.warning(f"Could not delete image file {full_path}: {str(e)}")
+            try:
+                # Extract public_id from URL
+                public_id = img_url.split("/")[-1].split(".")[0]
+
+                cloudinary.uploader.destroy(
+                    f"velvet_vogue/products/{public_id}"
+                )
+
+            except Exception as e:
+                logger.warning(f"Cloudinary deletion failed: {str(e)}")
 
         db.session.delete(product)
         db.session.commit()
@@ -1132,10 +1155,10 @@ def api_checkout():
         required = ['customer', 'items', 'subtotal', 'delivery_fee', 'total', 'payment_method']
         for field in required:
             if field not in data:
-                return jsonify({'success': False, 'error': f'Missing field: {field}'}), 400
+                raise ValueError(f"Missing field: {field}")
 
-        # Start transaction
         with db_session_management():
+
             # Create order
             order = Order(
                 customer_name=data['customer']['name'],
@@ -1153,16 +1176,15 @@ def api_checkout():
             db.session.add(order)
             db.session.flush()  # Get order ID
 
-            # Create order items - handle both id and product_id
             for item in data['items']:
-                # Try to get product_id from either field
+
                 product_id = item.get('product_id') or item.get('id')
                 if not product_id:
-                    return jsonify({'success': False, 'error': 'Item missing product_id'}), 400
+                    raise ValueError("Item missing product_id")
 
                 product = db.session.get(Product, product_id)
                 if not product:
-                    return jsonify({'success': False, 'error': f'Product not found: {product_id}'}), 400
+                    raise ValueError(f"Product not found: {product_id}")
 
                 order_item = OrderItem(
                     order_id=order.id,
@@ -1171,15 +1193,18 @@ def api_checkout():
                     quantity=item['quantity'],
                     price=item['price']
                 )
+
                 db.session.add(order_item)
 
-                # Update stock ONLY if payment is confirmed (paid)
+                # Update stock ONLY if payment confirmed
                 if data.get('payment_status') == 'paid':
-                    # Use select for update to prevent race conditions
-                    product = db.session.query(Product)\
-                        .filter_by(id=product_id)\
-                        .with_for_update()\
+
+                    product = (
+                        db.session.query(Product)
+                        .filter_by(id=product_id)
+                        .with_for_update()
                         .first()
+                    )
 
                     sizes = dict(product.sizes or {})
                     current_stock = sizes.get(item['size'], 0)
@@ -1187,22 +1212,30 @@ def api_checkout():
                     if current_stock < item['quantity']:
                         raise ValueError(f"Insufficient stock for size {item['size']}")
 
-                    new_qty = current_stock - item['quantity']
-                    sizes[item['size']] = new_qty
+                    sizes[item['size']] = current_stock - item['quantity']
                     product.sizes = sizes
                     product.stock = sum(sizes.values())
                     product.sold_count += item['quantity']
 
-            db.session.commit()
+        # ✅ SAVE ID before session closes
+        order_id = order.id
 
-        # Send emails (outside transaction to avoid delays)
+        # ✅ RELOAD with eager-loaded items
+        order = (
+            Order.query
+            .options(joinedload(Order.items))
+            .get(order_id)
+        )
+
+        # Send emails outside transaction
         try:
             email_service = EmailService()
             email_service.send_order_confirmation(order, order.items)
             email_service.send_admin_notification(order, order.items)
+
         except Exception as email_error:
             logger.error(f"Checkout email error: {str(email_error)}")
-            # Don't fail the checkout if emails fail
+            # Do NOT fail checkout if email fails
 
         return jsonify({
             'success': True,
@@ -1213,7 +1246,12 @@ def api_checkout():
     except Exception as e:
         db.session.rollback()
         logger.error(f"Checkout error: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 400
+
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+
 
 
 @app.route('/api/register', methods=['POST'])
