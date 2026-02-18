@@ -647,7 +647,7 @@
                 padding-bottom: 1rem;
                 text-align: center;
             }
-            
+
             .contact-info p {
                 text-align: center;
             }
@@ -1113,14 +1113,7 @@
         </div>
     </section>
 
-    <!-- Floating Cart -->
-    <div class="cart-float">
-        <div class="cart-badge">
-            <span>🛍️ CART</span>
-            <span class="cart-count-badge" id="cartCounter">0</span>
-            <a href="/cart" class="view-cart-btn">VIEW</a>
-        </div>
-    </div>
+
 
     <!-- Footer -->
     <footer class="footer">
@@ -1172,8 +1165,8 @@
 
             // Close mobile menu when clicking outside
             document.addEventListener('click', (e) => {
-                if (mobileMenu.classList.contains('active') && 
-                    !mobileMenu.contains(e.target) && 
+                if (mobileMenu.classList.contains('active') &&
+                    !mobileMenu.contains(e.target) &&
                     !hamburgerMenu.contains(e.target)) {
                     hamburgerIcon.classList.remove('active');
                     mobileMenu.classList.remove('active');
@@ -1213,7 +1206,7 @@
             currentHeroSlide = (currentHeroSlide + 1) % heroSlides.length;
             heroSlides[currentHeroSlide].classList.add('active');
         }
-        
+
         let heroInterval = setInterval(nextHeroSlide, 5000);
 
         // Pause carousel on hover
@@ -1250,17 +1243,17 @@
 
         function updateImageCarousel() {
             if (images.length === 0 || !imageTrack) return;
-            
+
             // Get accurate slide width including gap
             const firstImage = images[0];
             if (!firstImage) return;
-            
+
             const slideWidth = firstImage.offsetWidth;
             const gap = window.innerWidth > 768 ? 24 : 16; // Gap in pixels
             const translateX = currentImageIndex * (slideWidth + gap);
-            
+
             imageTrack.style.transform = `translateX(-${translateX}px)`;
-            
+
             // Update indicators
             document.querySelectorAll('.indicator-dot').forEach((dot, index) => {
                 dot.classList.toggle('active', index === currentImageIndex);
@@ -1284,11 +1277,11 @@
         let imageCarouselInterval;
         if (imageTrack) {
             imageCarouselInterval = setInterval(() => moveImageCarousel(1), 4000);
-            
+
             imageTrack.addEventListener('mouseenter', () => {
                 clearInterval(imageCarouselInterval);
             });
-            
+
             imageTrack.addEventListener('mouseleave', () => {
                 clearInterval(imageCarouselInterval);
                 imageCarouselInterval = setInterval(() => moveImageCarousel(1), 4000);
@@ -1305,7 +1298,7 @@
                     imagesPerView = newImagesPerView;
                     const newMaxIndex = Math.max(0, totalImages - imagesPerView);
                     currentImageIndex = Math.min(currentImageIndex, newMaxIndex);
-                    
+
                     // Recreate indicators
                     if (indicatorsContainer) {
                         indicatorsContainer.innerHTML = '';
@@ -1319,7 +1312,7 @@
                             indicatorsContainer.appendChild(dot);
                         }
                     }
-                    
+
                     updateImageCarousel();
                 }
             }, 150);
