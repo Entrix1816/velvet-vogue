@@ -577,6 +577,8 @@ def admin_logout():
 @app.route('/admin')
 def admin_panel():
     """Main admin dashboard"""
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login_page'))
     # Get stats for dashboard
     total_products = Product.query.count()
     total_orders = Order.query.count()
@@ -1197,13 +1199,6 @@ def init_db():
 
     print("✅ Database initialization complete!")
 
-# Add this temporarily to see all routes
-with app.app_context():
-    print("\n=== ALL REGISTERED ROUTES ===")
-    for rule in app.url_map.iter_rules():
-        if 'order' in str(rule).lower():
-            print(f"  {rule}")
-    print("=============================\n")
 
 if __name__ == '__main__':
     # Create tables if they don't exist
