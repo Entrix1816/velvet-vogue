@@ -44,7 +44,8 @@ app.config['SITE_URL'] = os.getenv('SITE_URL', 'http://127.0.0.1:5000')
 # Add these with your other config
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_size': 10,
-    'pool_recycle': 3600,
+    'max_overflow': 10,
+    'pool_recycle': 1800,
     'pool_pre_ping': True,
 }
 
