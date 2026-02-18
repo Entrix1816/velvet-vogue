@@ -1025,10 +1025,15 @@ def delete_product(product_id):
 def update_order_status(order_id):
     """Update order delivery status and send confirmation email"""
     try:
-        order = Order.query.get_or_404(order_id)
-        order.delivery_status = request.form.get('status', 'delivered')
+        order = db.session.get(Order, order_id)
+        if not order:
+            flash('Order not found', 'error')
+            return redirect(url_for('admin_panel', _anchor='orders'))
 
-        # If this is a Pay on Delivery order, also mark payment as paid
+        new_status = request.form.get('status', 'delivered')
+        order.delivery_status = new_status
+
+        # Pay on Delivery: mark as paid automatically
         if order.payment_method == 'Pay on Delivery':
             order.payment_status = 'paid'
             flash('✅ Order marked as delivered and payment status updated to paid', 'success')
@@ -1038,20 +1043,19 @@ def update_order_status(order_id):
         # Send delivery confirmation email
         try:
             email_service = EmailService()
-            # You'll need to add this method to EmailService
             email_service.send_delivery_confirmation(order)
             if order.payment_method != 'Pay on Delivery':
                 flash('✅ Order marked as delivered and email sent to customer', 'success')
-        except Exception as email_error:
-            logger.error(f"Delivery email error: {str(email_error)}")
+        except Exception as email_err:
+            print(f"Delivery email error: {email_err}")
             flash('⚠️ Order marked as delivered but email failed to send', 'warning')
 
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Update order status error: {str(e)}")
         flash(f'Error updating order: {str(e)}', 'error')
 
     return redirect(url_for('admin_panel', _anchor='orders'))
+
 
 
 @app.route('/admin/update-payment/<int:order_id>', methods=['POST'])
@@ -1147,95 +1151,75 @@ def sync_cart():
 
 @app.route('/api/checkout', methods=['POST'])
 def api_checkout():
-    """Process checkout, create order, send emails"""
+    """Process checkout, create order, update stock, and send emails"""
     try:
-        data = request.get_json() or {}
+        data = request.get_json()
 
-        # Validate required fields
+        # Required fields validation
         required = ['customer', 'items', 'subtotal', 'delivery_fee', 'total', 'payment_method']
         for field in required:
             if field not in data:
-                raise ValueError(f"Missing field: {field}")
+                return jsonify({'success': False, 'error': f'Missing field: {field}'}), 400
 
-        with db_session_management():
-
-            # Create order
-            order = Order(
-                customer_name=data['customer']['name'],
-                customer_email=data['customer']['email'].lower(),
-                customer_phone=data['customer']['phone'],
-                shipping_address=data['customer']['address'],
-                subtotal=data['subtotal'],
-                delivery_fee=data['delivery_fee'],
-                total_amount=data['total'],
-                payment_method=data['payment_method'],
-                payment_status=data.get('payment_status', 'pending'),
-                transaction_ref=data.get('payment_reference')
-            )
-
-            db.session.add(order)
-            db.session.flush()  # Get order ID
-
-            for item in data['items']:
-
-                product_id = item.get('product_id') or item.get('id')
-                if not product_id:
-                    raise ValueError("Item missing product_id")
-
-                product = db.session.get(Product, product_id)
-                if not product:
-                    raise ValueError(f"Product not found: {product_id}")
-
-                order_item = OrderItem(
-                    order_id=order.id,
-                    product_id=product_id,
-                    size=item['size'],
-                    quantity=item['quantity'],
-                    price=item['price']
-                )
-
-                db.session.add(order_item)
-
-                # Update stock ONLY if payment confirmed
-                if data.get('payment_status') == 'paid':
-
-                    product = (
-                        db.session.query(Product)
-                        .filter_by(id=product_id)
-                        .with_for_update()
-                        .first()
-                    )
-
-                    sizes = dict(product.sizes or {})
-                    current_stock = sizes.get(item['size'], 0)
-
-                    if current_stock < item['quantity']:
-                        raise ValueError(f"Insufficient stock for size {item['size']}")
-
-                    sizes[item['size']] = current_stock - item['quantity']
-                    product.sizes = sizes
-                    product.stock = sum(sizes.values())
-                    product.sold_count += item['quantity']
-
-        # ✅ SAVE ID before session closes
-        order_id = order.id
-
-        # ✅ RELOAD with eager-loaded items
-        order = (
-            Order.query
-            .options(joinedload(Order.items))
-            .get(order_id)
+        # Create order
+        order = Order(
+            customer_name=data['customer']['name'],
+            customer_email=data['customer']['email'].lower(),
+            customer_phone=data['customer']['phone'],
+            shipping_address=data['customer']['address'],
+            subtotal=data['subtotal'],
+            delivery_fee=data['delivery_fee'],
+            total_amount=data['total'],
+            payment_method=data['payment_method'],
+            payment_status=data.get('payment_status', 'pending'),
+            transaction_ref=data.get('payment_reference')
         )
 
-        # Send emails outside transaction
+        db.session.add(order)
+        db.session.flush()  # Ensure order.id is available
+
+        # Create order items and handle stock update
+        for item in data['items']:
+            product_id = item.get('product_id') or item.get('id')
+            if not product_id:
+                return jsonify({'success': False, 'error': 'Item missing product_id'}), 400
+
+            product = db.session.get(Product, product_id)
+            if not product:
+                return jsonify({'success': False, 'error': f'Product not found: {product_id}'}), 400
+
+            # Validate stock BEFORE committing
+            available, msg = product.check_size_availability(item['size'], item['quantity'])
+            if not available:
+                return jsonify({'success': False, 'error': msg}), 400
+
+            # Create order item
+            order_item = OrderItem(
+                order_id=order.id,
+                product_id=product_id,
+                size=item['size'],
+                quantity=item['quantity'],
+                price=item['price']
+            )
+            db.session.add(order_item)
+
+            # Only deduct stock if payment is confirmed
+            if data.get('payment_status') == 'paid':
+                sizes = dict(product.sizes)
+                sizes[item['size']] -= item['quantity']
+                product.sizes = sizes
+                product.stock = sum(sizes.values())
+                product.sold_count += item['quantity']
+
+        db.session.commit()
+
+        # Send emails after commit
         try:
             email_service = EmailService()
-            email_service.send_order_confirmation(order, order.items)
-            email_service.send_admin_notification(order, order.items)
-
-        except Exception as email_error:
-            logger.error(f"Checkout email error: {str(email_error)}")
-            # Do NOT fail checkout if email fails
+            email_service.send_order_confirmation(order, order.items)  # Customer
+            email_service.send_admin_notification(order, order.items)   # Admin
+        except Exception as email_err:
+            print(f"Email sending failed: {email_err}")
 
         return jsonify({
             'success': True,
@@ -1245,12 +1229,9 @@ def api_checkout():
 
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Checkout error: {str(e)}")
+        print(f"Checkout error: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 400
 
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 400
 
 
 
