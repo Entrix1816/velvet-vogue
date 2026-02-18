@@ -65,14 +65,14 @@
 
         /* Desktop Navigation Links - visible only above 768px */
         .nav-links {
-            display: none; /* hidden on mobile by default */
+            display: none;
             gap: 3rem;
             align-items: center;
         }
 
         @media (min-width: 769px) {
             .nav-links {
-                display: flex; /* show only on desktop */
+                display: flex;
             }
         }
 
@@ -112,16 +112,18 @@
             box-shadow: 0 0 15px #ff99bb;
         }
 
-        /* Hamburger Menu - visible only on mobile (≤768px) */
+        /* Hamburger Menu - visible only on mobile */
         .hamburger-menu {
-            display: block; /* visible on mobile */
+            display: block;
             cursor: pointer;
             z-index: 101;
+            /* Ensure it doesn't get pushed too far */
+            margin-left: auto;
         }
 
         @media (min-width: 769px) {
             .hamburger-menu {
-                display: none; /* hidden on desktop */
+                display: none;
             }
         }
 
@@ -763,15 +765,28 @@
             text-decoration: underline;
         }
 
-        /* Hide desktop cart icon - we're using hamburger now */
+        /* Hide desktop cart icon */
         .cart-icon {
             display: none;
         }
 
-        /* Responsive styles */
+        /* Responsive styles - FIXED mobile padding */
         @media (max-width: 768px) {
             .navbar {
-                padding: 1rem 1.5rem;
+                padding: 0.8rem 1rem; /* Reduced padding on mobile */
+            }
+            
+            .navbar.scrolled {
+                padding: 0.6rem 1rem; /* Reduced padding when scrolled */
+            }
+            
+            .logo {
+                font-size: 1.6rem; /* Slightly smaller logo on mobile */
+                letter-spacing: 4px;
+            }
+            
+            .hamburger-menu {
+                margin-left: auto; /* Push to the right but not too far */
             }
 
             .contact-container {
@@ -793,17 +808,17 @@
                 flex: 0 0 calc(100% - 1rem);
             }
 
-            .sales-title {
-                font-size: 2rem;
+            .sales-title { 
+                font-size: 2rem; 
+            }
+            
+            .sales-message { 
+                font-size: 1.1rem; 
             }
 
-            .sales-message {
-                font-size: 1.1rem;
-            }
-
-            .footer-links {
-                gap: 1rem;
-                flex-direction: column;
+            .footer-links { 
+                gap: 1rem; 
+                flex-direction: column; 
             }
 
             .cart-float {
@@ -814,6 +829,23 @@
             .cart-badge {
                 padding: 0.6rem 1.2rem;
                 gap: 1rem;
+            }
+        }
+        
+        /* Small phones */
+        @media (max-width: 480px) {
+            .navbar {
+                padding: 0.6rem 0.8rem;
+            }
+            
+            .logo {
+                font-size: 1.4rem;
+                letter-spacing: 3px;
+            }
+            
+            .hamburger-icon {
+                width: 25px;
+                height: 18px;
             }
         }
     </style>
@@ -852,7 +884,8 @@
         </div>
     </nav>
 
-    <!-- Hero Carousel (auto-switching backgrounds) -->
+    <!-- Rest of your HTML remains exactly the same -->
+    <!-- Hero Carousel -->
     <section class="hero">
         <div class="carousel-slides">
             <div class="carousel-slide active" style="background-image: url('https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=2070&auto=format&fit=crop');"></div>
@@ -867,10 +900,9 @@
         </div>
     </section>
 
-    <!-- Trending Section - Pure Image Carousel -->
+    <!-- Trending Section -->
     <section class="trending-section" id="trending">
         <h2 class="section-title">TRENDING NOW</h2>
-
         <div class="image-carousel">
             <div class="carousel-track-container">
                 <div class="carousel-track-images" id="imageTrack">
@@ -903,9 +935,7 @@
                     </div>
                 </div>
             </div>
-
             <div class="carousel-indicators" id="indicators"></div>
-
             <div class="carousel-nav-btns">
                 <button class="nav-btn" onclick="moveImageCarousel(-1)">←</button>
                 <button class="nav-btn" onclick="moveImageCarousel(1)">→</button>
@@ -935,23 +965,17 @@
             <div class="contact-info">
                 <h2>GET IN TOUCH</h2>
                 <p>Have questions about our pieces? Want to style consultation? Reach out to us directly.</p>
-
                 <div class="contact-buttons">
-                    <!-- Phone Button -->
                     <a href="tel:+2348112835788" class="contact-button">
                         <span class="icon">📞</span>
                         <span class="text">+234 811 283 5788</span>
                         <span class="arrow">→</span>
                     </a>
-
-                    <!-- Instagram Button -->
                     <a href="https://instagram.com/velvetvogue.ng" target="_blank" class="contact-button">
                         <span class="icon">📷</span>
                         <span class="text">@velvetvogue.ng</span>
                         <span class="arrow">→</span>
                     </a>
-
-                    <!-- Email Button -->
                     <a href="mailto:hello@velvetvogue.ng" class="contact-button">
                         <span class="icon">✉️</span>
                         <span class="text">hello@velvetvogue.ng</span>
@@ -959,7 +983,6 @@
                     </a>
                 </div>
             </div>
-
             <div class="contact-image">
                 <img src="https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?q=80&w=2070&auto=format&fit=crop" alt="Contact Velvet Vogue">
             </div>
@@ -970,21 +993,18 @@
     <footer class="footer">
         <div class="footer-content">
             <div class="footer-logo">VELVET<span>VOGUE</span></div>
-
             <div class="footer-links">
                 <a href="/collection">COLLECTION</a>
                 <a href="/admin-login">ADMIN</a>
                 <a href="#trending">TRENDING</a>
                 <a href="#contact">CONTACT</a>
             </div>
-
             <div class="social-links">
                 <a href="https://instagram.com/velvetvogue.ng" target="_blank" class="social-link">📷</a>
                 <a href="#" class="social-link">📱</a>
                 <a href="#" class="social-link">👻</a>
                 <a href="#" class="social-link">🐦</a>
             </div>
-
             <div class="copyright">
                 © 2026 VELVET VOGUE. ALL RIGHTS RESERVED.
                 <a href="#">PRIVACY</a> ·
@@ -1007,7 +1027,6 @@
                 document.body.style.overflow = mobileMenu.classList.contains('active') ? 'hidden' : '';
             });
 
-            // Close mobile menu when clicking a link
             document.querySelectorAll('.mobile-link').forEach(link => {
                 link.addEventListener('click', () => {
                     hamburgerIcon.classList.remove('active');
@@ -1069,7 +1088,6 @@
         const totalImages = images.length;
         const maxIndex = totalImages - imagesPerView;
 
-        // Create indicators
         if (indicatorsContainer) {
             for (let i = 0; i <= maxIndex; i++) {
                 const dot = document.createElement('span');
@@ -1083,8 +1101,6 @@
             if (images.length === 0) return;
             const slideWidth = images[0].offsetWidth + 24;
             imageTrack.style.transform = `translateX(-${currentImageIndex * slideWidth}px)`;
-
-            // Update indicators
             document.querySelectorAll('.indicator-dot').forEach((dot, index) => {
                 dot.classList.toggle('active', index === currentImageIndex);
             });
@@ -1102,20 +1118,14 @@
             updateImageCarousel();
         };
 
-        // Auto-advance image carousel every 4 seconds
         if (imageTrack) {
             let imageCarouselInterval = setInterval(() => moveImageCarousel(1), 4000);
-
-            imageTrack.addEventListener('mouseenter', () => {
-                clearInterval(imageCarouselInterval);
-            });
-
+            imageTrack.addEventListener('mouseenter', () => clearInterval(imageCarouselInterval));
             imageTrack.addEventListener('mouseleave', () => {
                 imageCarouselInterval = setInterval(() => moveImageCarousel(1), 4000);
             });
         }
 
-        // Update imagesPerView on window resize
         window.addEventListener('resize', () => {
             const newImagesPerView = window.innerWidth > 768 ? 3 : 1;
             if (newImagesPerView !== imagesPerView) {
@@ -1149,7 +1159,6 @@
             updateImageCarousel();
         });
 
-        // Update cart from server
         fetch('/api/cart')
             .then(response => response.json())
             .then(data => {
