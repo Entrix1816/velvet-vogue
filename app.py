@@ -1,3 +1,5 @@
+from contextlib import contextmanager
+import logging
 import os
 from datetime import datetime
 import uuid
@@ -5,12 +7,15 @@ from werkzeug.security import check_password_hash, generate_password_hash
 import secrets
 from email_service import EmailService
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
-from werkzeug.utils import secure_filename
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash, abort
 from sqlalchemy.dialects.postgresql import ARRAY, JSON
-from sqlalchemy import and_
+from sqlalchemy import and_, func, or_
 from werkzeug.utils import secure_filename
 from models import db, User, Category, Product, Order, OrderItem, Cart, FailedEmail
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -19,7 +24,12 @@ app = Flask(__name__)
 
 # -------------------- CONFIGURATION FROM ENV --------------------
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
+database_url = os.getenv("DATABASE_URL")
+
+if database_url and database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = os.getenv('SQLALCHEMY_TRACK_MODIFICATIONS', 'False').lower() == 'true'
 app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', 'static/uploads')
 app.config['MAX_CONTENT_LENGTH'] = int(os.getenv('MAX_UPLOAD_SIZE_MB', 16)) * 1024 * 1024
@@ -35,15 +45,55 @@ app.config['SMTP_EMAIL'] = os.getenv('SMTP_EMAIL')
 app.config['SMTP_PASSWORD'] = os.getenv('SMTP_PASSWORD')
 app.config['SITE_URL'] = os.getenv('SITE_URL', 'http://127.0.0.1:5000')
 
-#admin configuration
+# Database pool configuration - optimized for high concurrency
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_pre_ping': True,  # Enable connection health checks
+    'pool_recycle': 1800,   # Recycle connections after 30 minutes
+    'connect_args': {
+        'connect_timeout': 10
+    }
+}
+
+# Only add pool size in production for better performance
+if app.config['FLASK_ENV'] == 'production':
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'].update({
+        'pool_size': 10,
+        'max_overflow': 20,
+        'pool_timeout': 30
+    })
+
+# Admin configuration
 app.config['ADMIN_EMAIL'] = os.getenv('ADMIN_EMAIL')
-app.config['ADMIN_PASSWORD_HASH']= os.getenv('ADMIN_PASSWORD_HASH')
+app.config['ADMIN_PASSWORD_HASH'] = os.getenv('ADMIN_PASSWORD_HASH')
+
 # Ensure upload directory exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-
+# Initialize database
 db.init_app(app)
 
+# -------------------- DATABASE SESSION MANAGEMENT --------------------
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    """Automatically remove database sessions at the end of each request"""
+    if exception:
+        db.session.rollback()
+        logger.error(f"Database session rolled back due to: {str(exception)}")
+    db.session.remove()
+
+
+@contextmanager
+def db_session_management():
+    """Context manager for safe database operations"""
+    try:
+        yield
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Database error: {str(e)}")
+        raise
+    finally:
+        db.session.remove()
 
 
 # -------------------- CART HELPER FUNCTIONS --------------------
@@ -68,61 +118,94 @@ def calculate_cart_total(cart):
 
 def check_stock_availability(product_id, size, quantity):
     """Check if requested quantity for specific size is available"""
-    product = db.session.get(Product, product_id)
-    if not product:
-        return False, "Product not found"
-    return product.check_size_availability(size, quantity)
+    try:
+        product = db.session.get(Product, product_id)
+        if not product:
+            return False, "Product not found"
+        return product.check_size_availability(size, quantity)
+    except Exception as e:
+        logger.error(f"Stock check error: {str(e)}")
+        return False, "Error checking stock"
 
 
 # -------------------- PUBLIC ROUTES --------------------
 @app.route('/')
 def home():
     """Homepage with product grid"""
-    products = Product.query.filter(Product.stock > 0).order_by(Product.created_at.desc()).limit(8).all()
-    categories = Category.query.all()
-    return render_template('index.html', products=products, categories=categories)
+    try:
+        products = Product.query.filter(Product.stock > 0)\
+            .order_by(Product.created_at.desc())\
+            .limit(8)\
+            .all()
+        categories = Category.query.limit(20).all()  # Limit categories for performance
+        return render_template('index.html', products=products, categories=categories)
+    except Exception as e:
+        logger.error(f"Homepage error: {str(e)}")
+        flash('Unable to load products. Please try again.', 'error')
+        return render_template('index.html', products=[], categories=[])
 
 
 @app.route('/product/<int:product_id>')
 def product_detail(product_id):
     """Product detail page"""
-    product = db.session.get(Product, product_id)
-    if not product:
-        abort(404)
-    related_products = Product.query.filter(
-        Product.category_id == product.category_id,
-        Product.id != product_id,
-        Product.stock > 0
-    ).limit(4).all()
-    return render_template('product_detail.html', product=product, related=related_products)
+    try:
+        product = db.session.get(Product, product_id)
+        if not product:
+            abort(404)
+
+        related_products = Product.query.filter(
+            Product.category_id == product.category_id,
+            Product.id != product_id,
+            Product.stock > 0
+        ).limit(4).all()
+
+        return render_template('product_detail.html', product=product, related=related_products)
+    except Exception as e:
+        logger.error(f"Product detail error: {str(e)}")
+        abort(500)
 
 
 @app.route('/collection')
 def collection():
     """Collection page with all products and filters"""
-    products = Product.query.filter(Product.stock > 0).order_by(Product.created_at.desc()).all()
-    categories = Category.query.all()
+    try:
+        # Use pagination for products
+        page = request.args.get('page', 1, type=int)
+        per_page = 24
 
-    # Get min and max prices for filter range
-    min_price = db.session.query(db.func.min(Product.price)).scalar() or 0
-    max_price = db.session.query(db.func.max(Product.price)).scalar() or 100000
+        products_paginated = Product.query.filter(Product.stock > 0)\
+            .order_by(Product.created_at.desc())\
+            .paginate(page=page, per_page=per_page, error_out=False)
 
-    return render_template('collection.html',
-                           products=products,
-                           categories=categories,
-                           min_price=float(min_price),
-                           max_price=float(max_price))
+        categories = Category.query.limit(20).all()
+
+        # Get min and max prices for filter range
+        min_price = db.session.query(func.min(Product.price)).scalar() or 0
+        max_price = db.session.query(func.max(Product.price)).scalar() or 100000
+
+        return render_template('collection.html',
+                               products=products_paginated.items,
+                               pagination=products_paginated,
+                               categories=categories,
+                               min_price=float(min_price),
+                               max_price=float(max_price))
+    except Exception as e:
+        logger.error(f"Collection page error: {str(e)}")
+        flash('Unable to load collection. Please try again.', 'error')
+        return render_template('collection.html', products=[], categories=[], min_price=0, max_price=0)
 
 
 @app.route('/api/collection/filter', methods=['POST'])
 def filter_collection():
     """API endpoint for filtering products"""
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         category_ids = data.get('categories', [])
         min_price = float(data.get('minPrice', 0))
         max_price = float(data.get('maxPrice', 9999999))
         sizes = data.get('sizes', [])
+        page = data.get('page', 1)
+        per_page = data.get('per_page', 24)
 
         # Start query
         query = Product.query.filter(Product.stock > 0)
@@ -139,31 +222,57 @@ def filter_collection():
             size_filters = []
             for size in sizes:
                 size_filters.append(
-                    db.cast(Product.sizes[size], db.Integer) > 0
+                    func.coalesce(
+                        Product.sizes[size].astext.cast(db.Integer),
+                        0
+                    ) > 0
                 )
             if size_filters:
-                query = query.filter(db.or_(*size_filters))
+                query = query.filter(or_(*size_filters))
 
-        products = query.all()
+        # Paginate results
+        paginated = query.order_by(Product.created_at.desc())\
+            .paginate(page=page, per_page=per_page, error_out=False)
 
         return jsonify({
             'success': True,
-            'products': [p.to_dict() for p in products]
+            'products': [p.to_dict() for p in paginated.items],
+            'total': paginated.total,
+            'pages': paginated.pages,
+            'current_page': paginated.page
         })
 
     except Exception as e:
+        logger.error(f"Filter collection error: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 400
 
 
 @app.route('/category/<int:category_id>')
 def category_products(category_id):
     """Filter products by category"""
-    category = db.session.get(Category, category_id)
-    if not category:
-        abort(404)
-    products = Product.query.filter_by(category_id=category_id).filter(Product.stock > 0).all()
-    categories = Category.query.all()
-    return render_template('collection.html', products=products, categories=categories, active_category=category_id)
+    try:
+        category = db.session.get(Category, category_id)
+        if not category:
+            abort(404)
+
+        page = request.args.get('page', 1, type=int)
+        per_page = 24
+
+        products_paginated = Product.query.filter_by(category_id=category_id)\
+            .filter(Product.stock > 0)\
+            .order_by(Product.created_at.desc())\
+            .paginate(page=page, per_page=per_page, error_out=False)
+
+        categories = Category.query.limit(20).all()
+
+        return render_template('collection.html',
+                               products=products_paginated.items,
+                               pagination=products_paginated,
+                               categories=categories,
+                               active_category=category_id)
+    except Exception as e:
+        logger.error(f"Category products error: {str(e)}")
+        abort(500)
 
 
 # -------------------- CART API ROUTES --------------------
@@ -171,7 +280,7 @@ def category_products(category_id):
 def add_to_cart():
     """Add item to cart with size and stock validation"""
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         product_id = str(data.get('product_id'))
         size = data.get('size')
         quantity = int(data.get('quantity', 1))
@@ -238,6 +347,7 @@ def add_to_cart():
         })
 
     except Exception as e:
+        logger.error(f"Add to cart error: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 400
 
 
@@ -245,9 +355,9 @@ def add_to_cart():
 def update_cart():
     """Update item quantity in cart"""
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         cart_key = data.get('cart_key')  # Format: product_id_size
-        quantity = int(data.get('quantity'))
+        quantity = int(data.get('quantity', 0))
 
         if quantity < 0:
             return jsonify({'success': False, 'error': 'Invalid quantity'}), 400
@@ -296,6 +406,7 @@ def update_cart():
         })
 
     except Exception as e:
+        logger.error(f"Update cart error: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 400
 
 
@@ -303,7 +414,7 @@ def update_cart():
 def remove_from_cart():
     """Remove item from cart"""
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         cart_key = data.get('cart_key')
 
         cart = get_cart()
@@ -325,6 +436,7 @@ def remove_from_cart():
         return jsonify({'success': False, 'error': 'Item not in cart'}), 404
 
     except Exception as e:
+        logger.error(f"Remove from cart error: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 400
 
 
@@ -402,10 +514,14 @@ def view_cart():
 @app.route('/api/products/<int:product_id>')
 def get_product(product_id):
     """Get single product details"""
-    product = db.session.get(Product, product_id)
-    if not product:
-        return jsonify({'success': False, 'error': 'Product not found'}), 404
-    return jsonify(product.to_dict())
+    try:
+        product = db.session.get(Product, product_id)
+        if not product:
+            return jsonify({'success': False, 'error': 'Product not found'}), 404
+        return jsonify(product.to_dict())
+    except Exception as e:
+        logger.error(f"Get product error: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 400
 
 
 @app.route('/checkout', methods=['GET'])
@@ -441,17 +557,12 @@ def checkout_page():
     delivery_fee = 2500
     total = subtotal + delivery_fee
 
-    # Debug print to verify key is being passed
-    print(f"🔑 Paystack Public Key: {app.config['PAYSTACK_PUBLIC_KEY']}")
-
     return render_template('checkout.html',
                            cart_items=cart_items,
                            subtotal=subtotal,
                            delivery_fee=delivery_fee,
                            total=total,
                            paystack_public_key=app.config['PAYSTACK_PUBLIC_KEY'])
-
-
 
 
 @app.route('/admin/email-queue-data')
@@ -482,6 +593,7 @@ def email_queue_data():
             'emails': emails_data
         })
     except Exception as e:
+        logger.error(f"Email queue data error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -498,6 +610,7 @@ def retry_failed_emails():
             'info'
         )
     except Exception as e:
+        logger.error(f"Retry emails error: {str(e)}")
         flash(f'Error retrying emails: {str(e)}', 'error')
 
     return redirect(url_for('admin_panel', _anchor='email-queue'))
@@ -514,7 +627,7 @@ def admin_login_page():
 def admin_login():
     """API endpoint for admin login"""
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         email = data.get('email', '').lower()
         password = data.get('password', '')
 
@@ -535,6 +648,7 @@ def admin_login():
         # Store admin session
         session['admin_logged_in'] = True
         session['admin_token'] = token
+        session.permanent = True  # Use permanent session
 
         return jsonify({
             'success': True,
@@ -543,6 +657,7 @@ def admin_login():
         })
 
     except Exception as e:
+        logger.error(f"Admin login error: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 400
 
 
@@ -553,56 +668,84 @@ def admin_logout():
     session.pop('admin_token', None)
     return jsonify({'success': True})
 
+
 @app.route('/admin')
 def admin_panel():
     """Main admin dashboard"""
-    # Get stats for dashboard
-    total_products = Product.query.count()
-    total_orders = Order.query.count()
-    pending_deliveries = Order.query.filter_by(delivery_status='pending').count()
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login_page'))
 
-    # Calculate revenue from paid orders
-    paid_orders = Order.query.filter_by(payment_status='paid').all()
-    revenue = sum(float(order.total_amount or 0) for order in paid_orders)
+    try:
+        # Get stats for dashboard using efficient queries
+        total_products = db.session.query(func.count(Product.id)).scalar() or 0
+        total_orders = db.session.query(func.count(Order.id)).scalar() or 0
+        pending_deliveries = db.session.query(func.count(Order.id))\
+            .filter_by(delivery_status='pending').scalar() or 0
 
-    products = Product.query.all()
-    orders = Order.query.all()
-    users = User.query.all()
-    categories = Category.query.all()
+        # Calculate revenue from paid orders
+        revenue = db.session.query(func.sum(Order.total_amount))\
+            .filter_by(payment_status='paid').scalar() or 0
 
-    # Create email service instance for template
-    email_service = EmailService()
+        # Get paginated data for tables
+        products_page = request.args.get('products_page', 1, type=int)
+        orders_page = request.args.get('orders_page', 1, type=int)
+        customers_page = request.args.get('customers_page', 1, type=int)
 
-    return render_template(
-        'admin.html',
-        total_products=total_products,
-        total_orders=total_orders,
-        pending_deliveries=pending_deliveries,
-        revenue=revenue,
-        products=products,
-        orders=orders,
-        customers=users,
-        categories=categories,
-        email_service=email_service  # Add this
-    )
+        per_page = 20
+
+        products = Product.query.order_by(Product.created_at.desc())\
+            .paginate(page=products_page, per_page=per_page, error_out=False)
+        orders = Order.query.order_by(Order.created_at.desc())\
+            .paginate(page=orders_page, per_page=per_page, error_out=False)
+        users = User.query.order_by(User.created_at.desc())\
+            .paginate(page=customers_page, per_page=per_page, error_out=False)
+        categories = Category.query.limit(50).all()
+
+        # Create email service instance for template
+        email_service = EmailService()
+
+        return render_template(
+            'admin.html',
+            total_products=total_products,
+            total_orders=total_orders,
+            pending_deliveries=pending_deliveries,
+            revenue=float(revenue),
+            products=products.items,
+            products_pagination=products,
+            orders=orders.items,
+            orders_pagination=orders,
+            customers=users.items,
+            customers_pagination=users,
+            categories=categories,
+            email_service=email_service
+        )
+    except Exception as e:
+        logger.error(f"Admin panel error: {str(e)}")
+        flash('Error loading admin panel. Please try again.', 'error')
+        return redirect(url_for('admin_login_page'))
 
 
 @app.route('/admin/add-category', methods=['POST'])
 def add_category():
     """Add new category"""
     try:
-        name = request.form.get('name')
-        if name:
-            # Check if category already exists
-            existing = Category.query.filter_by(name=name.lower()).first()
-            if existing:
-                flash(f'Category "{name}" already exists', 'error')
-            else:
-                category = Category(name=name.lower())
-                db.session.add(category)
-                db.session.commit()
-                flash(f'Category "{name}" added', 'success')
+        name = request.form.get('name', '').strip()
+        if not name:
+            flash('Category name is required', 'error')
+            return redirect(url_for('admin_panel', _anchor='products'))
+
+        # Check if category already exists
+        existing = Category.query.filter(func.lower(Category.name) == name.lower()).first()
+        if existing:
+            flash(f'Category "{name}" already exists', 'error')
+        else:
+            category = Category(name=name.lower())
+            db.session.add(category)
+            db.session.commit()
+            flash(f'Category "{name}" added', 'success')
     except Exception as e:
+        db.session.rollback()
+        logger.error(f"Add category error: {str(e)}")
         flash(f'Error adding category: {str(e)}', 'error')
 
     return redirect(url_for('admin_panel', _anchor='products'))
@@ -613,10 +756,14 @@ def add_product():
     """Handle new product submission with size-based inventory and multiple images"""
     try:
         # Get form data
-        name = request.form.get('name')
-        price = float(request.form.get('price'))
+        name = request.form.get('name', '').strip()
+        if not name:
+            flash('Product name is required', 'error')
+            return redirect(url_for('admin_panel', _anchor='products'))
+
+        price = float(request.form.get('price', 0))
         category_id = request.form.get('category')
-        description = request.form.get('description')
+        description = request.form.get('description', '')
 
         # Get size quantities
         sizes = {}
@@ -647,8 +794,8 @@ def add_product():
                 if file and file.filename:
                     # Generate unique filename
                     filename = secure_filename(file.filename)
-                    ext = filename.split('.')[-1]
-                    unique_name = f"{uuid.uuid4().hex}.{ext}"
+                    ext = filename.split('.')[-1] if '.' in filename else ''
+                    unique_name = f"{uuid.uuid4().hex}.{ext}" if ext else uuid.uuid4().hex
 
                     # Save file
                     file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
@@ -674,6 +821,8 @@ def add_product():
         flash(f'Product "{name}" added with {total_stock} units across {len(sizes)} sizes', 'success')
 
     except Exception as e:
+        db.session.rollback()
+        logger.error(f"Add product error: {str(e)}")
         flash(f'Error adding product: {str(e)}', 'error')
 
     return redirect(url_for('admin_panel', _anchor='products'))
@@ -688,6 +837,7 @@ def edit_product(product_id):
             flash('Product not found', 'error')
             return redirect(url_for('admin_panel', _anchor='products'))
 
+        # Update basic fields
         product.name = request.form.get('name', product.name)
         product.price = float(request.form.get('price', product.price))
         product.description = request.form.get('description', product.description)
@@ -718,8 +868,8 @@ def edit_product(product_id):
             for file in files:
                 if file and file.filename:
                     filename = secure_filename(file.filename)
-                    ext = filename.split('.')[-1]
-                    unique_name = f"{uuid.uuid4().hex}.{ext}"
+                    ext = filename.split('.')[-1] if '.' in filename else ''
+                    unique_name = f"{uuid.uuid4().hex}.{ext}" if ext else uuid.uuid4().hex
                     file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
                     file.save(file_path)
                     new_images.append(f"/static/uploads/{unique_name}")
@@ -732,6 +882,8 @@ def edit_product(product_id):
         flash('Product updated successfully', 'success')
 
     except Exception as e:
+        db.session.rollback()
+        logger.error(f"Edit product error: {str(e)}")
         flash(f'Error updating product: {str(e)}', 'error')
 
     return redirect(url_for('admin_panel', _anchor='products'))
@@ -743,13 +895,20 @@ def delete_category(category_id):
         category = db.session.get(Category, category_id)
         if not category:
             return jsonify({'success': False, 'error': 'Category not found'}), 404
+
         # Check if category has products
-        if category.products:
+        product_count = db.session.query(func.count(Product.id))\
+            .filter_by(category_id=category_id).scalar() or 0
+
+        if product_count > 0:
             return jsonify({'success': False, 'error': 'Category has products'}), 400
+
         db.session.delete(category)
         db.session.commit()
         return jsonify({'success': True})
     except Exception as e:
+        db.session.rollback()
+        logger.error(f"Delete category error: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 400
 
 
@@ -768,7 +927,10 @@ def update_stock(product_id):
         for size in size_keys:
             qty = request.form.get(f'size_{size}')
             if qty is not None:
-                sizes[size] = int(qty)
+                try:
+                    sizes[size] = int(qty)
+                except ValueError:
+                    sizes[size] = 0
 
         if sizes:
             product.sizes = sizes
@@ -779,6 +941,8 @@ def update_stock(product_id):
             flash('No size data provided', 'error')
 
     except Exception as e:
+        db.session.rollback()
+        logger.error(f"Update stock error: {str(e)}")
         flash(f'Error updating stock: {str(e)}', 'error')
 
     return redirect(url_for('admin_panel', _anchor='products'))
@@ -796,7 +960,8 @@ def delete_product(product_id):
             return redirect(url_for('admin_panel', _anchor='products'))
 
         # First, check if product has any order items (foreign key constraint)
-        order_items_count = OrderItem.query.filter_by(product_id=product_id).count()
+        order_items_count = db.session.query(func.count(OrderItem.id))\
+            .filter_by(product_id=product_id).scalar() or 0
 
         if order_items_count > 0:
             if request.method == 'DELETE':
@@ -805,12 +970,15 @@ def delete_product(product_id):
             return redirect(url_for('admin_panel', _anchor='products'))
 
         # Delete image files from server
-        for img_url in product.image_urls:
-            if img_url.startswith('/static/uploads/'):
+        for img_url in product.image_urls or []:
+            if img_url and img_url.startswith('/static/uploads/'):
                 file_path = img_url.replace('/static/uploads/', '')
                 full_path = os.path.join(app.config['UPLOAD_FOLDER'], file_path)
                 if os.path.exists(full_path):
-                    os.remove(full_path)
+                    try:
+                        os.remove(full_path)
+                    except OSError as e:
+                        logger.warning(f"Could not delete image file {full_path}: {str(e)}")
 
         db.session.delete(product)
         db.session.commit()
@@ -822,6 +990,7 @@ def delete_product(product_id):
 
     except Exception as e:
         db.session.rollback()
+        logger.error(f"Delete product error: {str(e)}")
         if request.method == 'DELETE':
             return jsonify({'success': False, 'error': str(e)}), 400
         flash(f'Error deleting product: {str(e)}', 'error')
@@ -851,11 +1020,12 @@ def update_order_status(order_id):
             if order.payment_method != 'Pay on Delivery':
                 flash('✅ Order marked as delivered and email sent to customer', 'success')
         except Exception as email_error:
-            print(f"Email error: {email_error}")
+            logger.error(f"Delivery email error: {str(email_error)}")
             flash('⚠️ Order marked as delivered but email failed to send', 'warning')
 
     except Exception as e:
         db.session.rollback()
+        logger.error(f"Update order status error: {str(e)}")
         flash(f'Error updating order: {str(e)}', 'error')
 
     return redirect(url_for('admin_panel', _anchor='orders'))
@@ -864,43 +1034,80 @@ def update_order_status(order_id):
 @app.route('/admin/update-payment/<int:order_id>', methods=['POST'])
 def update_payment_status(order_id):
     """Update payment status"""
-    order = db.session.get(Order, order_id)
-    if not order:
-        flash('Order not found', 'error')
-        return redirect(url_for('admin_panel', _anchor='orders'))
-    order.payment_status = request.form.get('status', 'paid')
-    db.session.commit()
-    flash('Payment status updated', 'success')
+    try:
+        order = db.session.get(Order, order_id)
+        if not order:
+            flash('Order not found', 'error')
+            return redirect(url_for('admin_panel', _anchor='orders'))
+
+        order.payment_status = request.form.get('status', 'paid')
+        db.session.commit()
+        flash('Payment status updated', 'success')
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Update payment status error: {str(e)}")
+        flash(f'Error updating payment status: {str(e)}', 'error')
+
     return redirect(url_for('admin_panel', _anchor='orders'))
 
 
 # -------------------- API ROUTES (for dynamic frontend) --------------------
 @app.route('/api/products')
 def api_products():
-    """Return all products as JSON"""
-    products = Product.query.all()
-    return jsonify([p.to_dict() for p in products])
+    """Return all products as JSON with pagination"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = min(request.args.get('per_page', 50, type=int), 100)  # Limit max per page
+
+        products = Product.query.order_by(Product.created_at.desc())\
+            .paginate(page=page, per_page=per_page, error_out=False)
+
+        return jsonify({
+            'success': True,
+            'products': [p.to_dict() for p in products.items],
+            'total': products.total,
+            'pages': products.pages,
+            'current_page': products.page
+        })
+    except Exception as e:
+        logger.error(f"API products error: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 400
 
 
 @app.route('/api/orders')
 def api_orders():
-    """Return all orders as JSON"""
-    orders = Order.query.all()
-    return jsonify([{
-        'id': o.id,
-        'order_number': o.order_number,
-        'customer_name': o.customer_name,
-        'amount': float(o.total_amount) if o.total_amount else 0,
-        'payment_status': o.payment_status.upper() if o.payment_status else 'PENDING',
-        'delivery_status': o.delivery_status.upper() if o.delivery_status else 'PENDING'
-    } for o in orders])
+    """Return all orders as JSON with pagination"""
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = min(request.args.get('per_page', 50, type=int), 100)
+
+        orders = Order.query.order_by(Order.created_at.desc())\
+            .paginate(page=page, per_page=per_page, error_out=False)
+
+        return jsonify({
+            'success': True,
+            'orders': [{
+                'id': o.id,
+                'order_number': o.order_number,
+                'customer_name': o.customer_name,
+                'amount': float(o.total_amount) if o.total_amount else 0,
+                'payment_status': o.payment_status.upper() if o.payment_status else 'PENDING',
+                'delivery_status': o.delivery_status.upper() if o.delivery_status else 'PENDING'
+            } for o in orders.items],
+            'total': orders.total,
+            'pages': orders.pages,
+            'current_page': orders.page
+        })
+    except Exception as e:
+        logger.error(f"API orders error: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 400
 
 
 @app.route('/api/cart/sync', methods=['POST'])
 def sync_cart():
     """Sync local cart with server (for logged-in users)"""
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         local_cart = data.get('cart', [])
 
         # Here you would sync with database cart for logged-in users
@@ -911,6 +1118,7 @@ def sync_cart():
             'message': 'Cart synced'
         })
     except Exception as e:
+        logger.error(f"Sync cart error: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 400
 
 
@@ -918,7 +1126,7 @@ def sync_cart():
 def api_checkout():
     """Process checkout, create order, send emails"""
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
 
         # Validate required fields
         required = ['customer', 'items', 'subtotal', 'delivery_fee', 'total', 'payment_method']
@@ -926,62 +1134,75 @@ def api_checkout():
             if field not in data:
                 return jsonify({'success': False, 'error': f'Missing field: {field}'}), 400
 
-        # Create order
-        order = Order(
-            customer_name=data['customer']['name'],
-            customer_email=data['customer']['email'].lower(),
-            customer_phone=data['customer']['phone'],
-            shipping_address=data['customer']['address'],
-            subtotal=data['subtotal'],
-            delivery_fee=data['delivery_fee'],
-            total_amount=data['total'],
-            payment_method=data['payment_method'],
-            payment_status=data.get('payment_status', 'pending'),
-            transaction_ref=data.get('payment_reference')
-        )
-
-        db.session.add(order)
-        db.session.flush()  # Get order ID
-
-        # Create order items - handle both id and product_id
-        for item in data['items']:
-            # Try to get product_id from either field
-            product_id = item.get('product_id') or item.get('id')
-            if not product_id:
-                return jsonify({'success': False, 'error': 'Item missing product_id'}), 400
-
-            product = db.session.get(Product, product_id)
-            if not product:
-                return jsonify({'success': False, 'error': f'Product not found: {product_id}'}), 400
-
-            order_item = OrderItem(
-                order_id=order.id,
-                product_id=product_id,
-                size=item['size'],
-                quantity=item['quantity'],
-                price=item['price']
+        # Start transaction
+        with db_session_management():
+            # Create order
+            order = Order(
+                customer_name=data['customer']['name'],
+                customer_email=data['customer']['email'].lower(),
+                customer_phone=data['customer']['phone'],
+                shipping_address=data['customer']['address'],
+                subtotal=data['subtotal'],
+                delivery_fee=data['delivery_fee'],
+                total_amount=data['total'],
+                payment_method=data['payment_method'],
+                payment_status=data.get('payment_status', 'pending'),
+                transaction_ref=data.get('payment_reference')
             )
-            db.session.add(order_item)
 
-            # Update stock ONLY if payment is confirmed (paid)
-            if data.get('payment_status') == 'paid':
-                sizes = dict(product.sizes)
-                current_stock = sizes.get(item['size'], 0)
-                sizes[item['size']] = current_stock - item['quantity']
-                product.sizes = sizes
-                product.stock = sum(sizes.values())
-                product.sold_count += item['quantity']
+            db.session.add(order)
+            db.session.flush()  # Get order ID
 
-        db.session.commit()
+            # Create order items - handle both id and product_id
+            for item in data['items']:
+                # Try to get product_id from either field
+                product_id = item.get('product_id') or item.get('id')
+                if not product_id:
+                    return jsonify({'success': False, 'error': 'Item missing product_id'}), 400
 
-        # Send emails
-        email_service = EmailService()
+                product = db.session.get(Product, product_id)
+                if not product:
+                    return jsonify({'success': False, 'error': f'Product not found: {product_id}'}), 400
 
-        # To customer
-        email_service.send_order_confirmation(order, order.items)
+                order_item = OrderItem(
+                    order_id=order.id,
+                    product_id=product_id,
+                    size=item['size'],
+                    quantity=item['quantity'],
+                    price=item['price']
+                )
+                db.session.add(order_item)
 
-        # To admin
-        email_service.send_admin_notification(order, order.items)
+                # Update stock ONLY if payment is confirmed (paid)
+                if data.get('payment_status') == 'paid':
+                    # Use select for update to prevent race conditions
+                    product = db.session.query(Product)\
+                        .filter_by(id=product_id)\
+                        .with_for_update()\
+                        .first()
+
+                    sizes = dict(product.sizes or {})
+                    current_stock = sizes.get(item['size'], 0)
+
+                    if current_stock < item['quantity']:
+                        raise ValueError(f"Insufficient stock for size {item['size']}")
+
+                    new_qty = current_stock - item['quantity']
+                    sizes[item['size']] = new_qty
+                    product.sizes = sizes
+                    product.stock = sum(sizes.values())
+                    product.sold_count += item['quantity']
+
+            db.session.commit()
+
+        # Send emails (outside transaction to avoid delays)
+        try:
+            email_service = EmailService()
+            email_service.send_order_confirmation(order, order.items)
+            email_service.send_admin_notification(order, order.items)
+        except Exception as email_error:
+            logger.error(f"Checkout email error: {str(email_error)}")
+            # Don't fail the checkout if emails fail
 
         return jsonify({
             'success': True,
@@ -991,7 +1212,7 @@ def api_checkout():
 
     except Exception as e:
         db.session.rollback()
-        print(f"Checkout error: {str(e)}")
+        logger.error(f"Checkout error: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 400
 
 
@@ -999,7 +1220,11 @@ def api_checkout():
 def api_register():
     """Register a new user from checkout"""
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
+
+        # Validate required fields
+        if not data.get('email') or not data.get('password'):
+            return jsonify({'success': False, 'error': 'Email and password required'}), 400
 
         # Check if user exists
         existing = User.query.filter_by(email=data['email'].lower()).first()
@@ -1008,7 +1233,7 @@ def api_register():
 
         # Create user
         user = User(
-            name=data['name'],
+            name=data.get('name', ''),
             email=data['email'].lower(),
             password_hash=generate_password_hash(data['password']),
             phone=data.get('phone'),
@@ -1024,6 +1249,7 @@ def api_register():
 
     except Exception as e:
         db.session.rollback()
+        logger.error(f"Register error: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 400
 
 
@@ -1031,147 +1257,145 @@ def api_register():
 @app.cli.command("init-db")
 def init_db():
     """Initialize database with sample data"""
+    try:
+        db.create_all()
+
+        # Add default categories if none exist
+        if Category.query.count() == 0:
+            default_categories = ['dresses', 'skirts', 'tops', 'bottoms', 'accessories']
+            for cat_name in default_categories:
+                category = Category(name=cat_name)
+                db.session.add(category)
+            db.session.commit()
+            print("✅ Categories added")
+
+        # Add sample users if none exist
+        if User.query.count() == 0:
+            sample_users = [
+                User(name="amara okonkwo", email="amara.o@email.com",
+                     password_hash=generate_password_hash("password123")),
+                User(name="zara ibrahim", email="zara.i@email.com",
+                     password_hash=generate_password_hash("password123")),
+                User(name="chidi nwosu", email="chidi.n@email.com",
+                     password_hash=generate_password_hash("password123")),
+            ]
+            db.session.add_all(sample_users)
+            db.session.commit()
+            print("✅ Users added")
+
+        # Add sample products with size-based inventory if none exist
+        if Product.query.count() == 0:
+            categories = Category.query.all()
+            if categories:
+                sample_products = [
+                    Product(
+                        name="noir drape dress",
+                        price=45900,
+                        category_id=categories[0].id,
+                        description="Elegant black drape dress for evening occasions. Features a flowing silhouette that moves with you.",
+                        sizes={"XS": 3, "S": 8, "M": 12, "L": 7, "XL": 4},
+                        stock=34,
+                        sold_count=23,
+                        image_urls=["/static/uploads/sample-dress-1.jpg", "/static/uploads/sample-dress-2.jpg"]
+                    ),
+                    Product(
+                        name="satin slip skirt",
+                        price=28900,
+                        category_id=categories[1].id,
+                        description="Luxurious satin skirt with subtle shine. Perfect for both day and night looks.",
+                        sizes={"XS": 5, "S": 10, "M": 15, "L": 8, "XL": 2},
+                        stock=40,
+                        sold_count=12,
+                        image_urls=["/static/uploads/sample-skirt-1.jpg", "/static/uploads/sample-skirt-2.jpg"]
+                    ),
+                    Product(
+                        name="velvet corset top",
+                        price=32700,
+                        category_id=categories[2].id,
+                        description="Sumptuous velvet corset with satin ribbons. Adjustable straps for perfect fit.",
+                        sizes={"S": 5, "M": 8, "L": 3, "XL": 1},
+                        stock=17,
+                        sold_count=7,
+                        image_urls=["/static/uploads/sample-corset-1.jpg"]
+                    ),
+                    Product(
+                        name="leather harness",
+                        price=19900,
+                        category_id=categories[4].id,
+                        description="Genuine leather harness with rose-gold hardware. Adjustable for all sizes.",
+                        sizes={"One Size": 12},
+                        stock=12,
+                        sold_count=15,
+                        image_urls=["/static/uploads/sample-harness-1.jpg"]
+                    ),
+                ]
+                db.session.add_all(sample_products)
+                db.session.commit()
+                print("✅ Products added")
+
+        # Add sample orders
+        if Order.query.count() == 0:
+            users = User.query.all()
+            products = Product.query.all()
+            if users and products:
+                sample_orders = [
+                    Order(
+                        user_id=users[0].id,
+                        customer_name=users[0].name,
+                        customer_email=users[0].email,
+                        customer_phone="08012345678",
+                        shipping_address="123 Test St, Lagos",
+                        subtotal=124500,
+                        delivery_fee=2500,
+                        total_amount=127000,
+                        payment_method="card",
+                        payment_status="paid",
+                        delivery_status="pending"
+                    ),
+                    Order(
+                        user_id=users[1].id,
+                        customer_name=users[1].name,
+                        customer_email=users[1].email,
+                        customer_phone="08087654321",
+                        shipping_address="456 Test Ave, Abuja",
+                        subtotal=89200,
+                        delivery_fee=2500,
+                        total_amount=91700,
+                        payment_method="transfer",
+                        payment_status="paid",
+                        delivery_status="delivered"
+                    ),
+                ]
+                db.session.add_all(sample_orders)
+                db.session.commit()
+
+                # Add order items with sizes
+                orders = Order.query.all()
+                for i, order in enumerate(orders):
+                    product = products[i % len(products)]
+                    # Get first available size
+                    size = list(product.sizes.keys())[0] if product.sizes else "M"
+                    item = OrderItem(
+                        order_id=order.id,
+                        product_id=product.id,
+                        size=size,
+                        quantity=2,
+                        price=product.price
+                    )
+                    db.session.add(item)
+                db.session.commit()
+                print("✅ Orders added")
+
+        print("✅ Database initialization complete!")
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Database initialization failed: {str(e)}")
+        raise
+
+@app.before_request
+def create_tables():
     db.create_all()
 
-    # Add default categories if none exist
-    if Category.query.count() == 0:
-        default_categories = ['dresses', 'skirts', 'tops', 'bottoms', 'accessories']
-        for cat_name in default_categories:
-            category = Category(name=cat_name)
-            db.session.add(category)
-        db.session.commit()
-        print("✅ Categories added")
-
-    # Add sample users if none exist
-    if User.query.count() == 0:
-        from werkzeug.security import generate_password_hash
-        sample_users = [
-            User(name="amara okonkwo", email="amara.o@email.com",
-                 password_hash=generate_password_hash("password123")),
-            User(name="zara ibrahim", email="zara.i@email.com",
-                 password_hash=generate_password_hash("password123")),
-            User(name="chidi nwosu", email="chidi.n@email.com",
-                 password_hash=generate_password_hash("password123")),
-        ]
-        db.session.add_all(sample_users)
-        db.session.commit()
-        print("✅ Users added")
-
-    # Add sample products with size-based inventory if none exist
-    if Product.query.count() == 0:
-        categories = Category.query.all()
-        if categories:
-            sample_products = [
-                Product(
-                    name="noir drape dress",
-                    price=45900,
-                    category_id=categories[0].id,
-                    description="Elegant black drape dress for evening occasions. Features a flowing silhouette that moves with you.",
-                    sizes={"XS": 3, "S": 8, "M": 12, "L": 7, "XL": 4},
-                    stock=34,
-                    sold_count=23,
-                    image_urls=["/static/uploads/sample-dress-1.jpg", "/static/uploads/sample-dress-2.jpg"]
-                ),
-                Product(
-                    name="satin slip skirt",
-                    price=28900,
-                    category_id=categories[1].id,
-                    description="Luxurious satin skirt with subtle shine. Perfect for both day and night looks.",
-                    sizes={"XS": 5, "S": 10, "M": 15, "L": 8, "XL": 2},
-                    stock=40,
-                    sold_count=12,
-                    image_urls=["/static/uploads/sample-skirt-1.jpg", "/static/uploads/sample-skirt-2.jpg"]
-                ),
-                Product(
-                    name="velvet corset top",
-                    price=32700,
-                    category_id=categories[2].id,
-                    description="Sumptuous velvet corset with satin ribbons. Adjustable straps for perfect fit.",
-                    sizes={"S": 5, "M": 8, "L": 3, "XL": 1},
-                    stock=17,
-                    sold_count=7,
-                    image_urls=["/static/uploads/sample-corset-1.jpg"]
-                ),
-                Product(
-                    name="leather harness",
-                    price=19900,
-                    category_id=categories[4].id,
-                    description="Genuine leather harness with rose-gold hardware. Adjustable for all sizes.",
-                    sizes={"One Size": 12},
-                    stock=12,
-                    sold_count=15,
-                    image_urls=["/static/uploads/sample-harness-1.jpg"]
-                ),
-            ]
-            db.session.add_all(sample_products)
-            db.session.commit()
-            print("✅ Products added")
-
-    # Add sample orders
-    if Order.query.count() == 0:
-        users = User.query.all()
-        products = Product.query.all()
-        if users and products:
-            sample_orders = [
-                Order(
-                    user_id=users[0].id,
-                    customer_name=users[0].name,
-                    customer_email=users[0].email,
-                    customer_phone="08012345678",
-                    shipping_address="123 Test St, Lagos",
-                    subtotal=124500,
-                    delivery_fee=2500,
-                    total_amount=127000,
-                    payment_method="card",
-                    payment_status="paid",
-                    delivery_status="pending"
-                ),
-                Order(
-                    user_id=users[1].id,
-                    customer_name=users[1].name,
-                    customer_email=users[1].email,
-                    customer_phone="08087654321",
-                    shipping_address="456 Test Ave, Abuja",
-                    subtotal=89200,
-                    delivery_fee=2500,
-                    total_amount=91700,
-                    payment_method="transfer",
-                    payment_status="paid",
-                    delivery_status="delivered"
-                ),
-            ]
-            db.session.add_all(sample_orders)
-            db.session.commit()
-
-            # Add order items with sizes
-            orders = Order.query.all()
-            for i, order in enumerate(orders):
-                product = products[i % len(products)]
-                # Get first available size
-                size = list(product.sizes.keys())[0] if product.sizes else "M"
-                item = OrderItem(
-                    order_id=order.id,
-                    product_id=product.id,
-                    size=size,
-                    quantity=2,
-                    price=product.price
-                )
-                db.session.add(item)
-            db.session.commit()
-            print("✅ Orders added")
-
-    print("✅ Database initialization complete!")
-
-# Add this temporarily to see all routes
-with app.app_context():
-    print("\n=== ALL REGISTERED ROUTES ===")
-    for rule in app.url_map.iter_rules():
-        if 'order' in str(rule).lower():
-            print(f"  {rule}")
-    print("=============================\n")
-
 if __name__ == '__main__':
-    # Create tables if they don't exist
-    with app.app_context():
-        db.create_all()
     app.run(debug=app.config['DEBUG'])
