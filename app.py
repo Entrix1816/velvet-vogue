@@ -628,6 +628,16 @@ def retry_failed_emails():
     return redirect(url_for('admin_panel', _anchor='email-queue'))
 
 
+@app.route('/api/cart/sync', methods=['POST'])
+def sync_cart():
+    data = request.get_json()
+    if not data or 'items' not in data:
+        return jsonify({'success': False, 'error': 'No cart data received'}), 400
+
+    session['cart'] = data['items']
+    session.modified = True
+    return jsonify({'success': True})
+
 # -------------------- ADMIN ROUTES --------------------
 @app.route('/admin-login')
 def admin_login_page():
