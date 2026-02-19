@@ -868,9 +868,21 @@
             field.parentNode.appendChild(error);
         }
 
+        async function syncCartToServer() {
+            await fetch('/api/cart/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items: cart })
+            });
+        }
+
+
         // Process order
         async function processOrder() {
             if (!validateForm()) return;
+
+            // sync client cart to server
+            await syncCartToServer();
 
             const confirmBtn = document.getElementById('confirmBtn');
             confirmBtn.disabled = true;
@@ -881,7 +893,6 @@
             const orderData = {
                 items: cart.map(item => ({
                     product_id: item.product_id,
-                    id: item.product_id,
                     size: item.size,
                     quantity: item.quantity,
                     price: item.price,
@@ -899,15 +910,13 @@
                 payment_method: selectedPayment === 'delivery' ? 'Pay on Delivery' : 'Paystack'
             };
 
-            // Add debug logging
-            console.log('Sending order data:', orderData);
-
             if (selectedPayment === 'delivery') {
                 await submitOrder(orderData);
             } else {
                 initializePaystack(orderData);
             }
         }
+
 
         // Initialize Paystack
         function initializePaystack(orderData) {
