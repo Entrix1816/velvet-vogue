@@ -4,7 +4,7 @@ import logging
 import cloudinary
 import cloudinary.uploader
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import uuid
 from werkzeug.security import check_password_hash, generate_password_hash
 import secrets
@@ -28,11 +28,17 @@ app = Flask(__name__)
 cloudinary.config(secure=True)
 
 # -------------------- CONFIGURATION FROM ENV --------------------
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_hex(32))
 database_url = os.getenv("DATABASE_URL")
 
 if database_url and database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+# Add after your other configs
+app.config['SESSION_COOKIE_SECURE'] = True  # Required for HTTPS on Render
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=1)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = os.getenv('SQLALCHEMY_TRACK_MODIFICATIONS', 'False').lower() == 'true'
@@ -47,7 +53,7 @@ app.config['SMTP_SERVER'] = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
 app.config['SMTP_PORT'] = int(os.getenv('SMTP_PORT', 587))
 app.config['SMTP_EMAIL'] = os.getenv('SMTP_EMAIL')
 app.config['SMTP_PASSWORD'] = os.getenv('SMTP_PASSWORD')
-app.config['SITE_URL'] = os.getenv('SITE_URL', 'http://127.0.0.1:5000')
+app.config['SITE_URL'] = os.getenv('SITE_URL')
 
 # Database pool configuration - optimized for high concurrency
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
@@ -787,37 +793,24 @@ def add_product():
             flash('Please select a valid category', 'error')
             return redirect(url_for('admin_panel', _anchor='products'))
 
-        # Handle multiple image uploads
         image_urls = []
+
         if 'images[]' in request.files:
             files = request.files.getlist('images[]')
+
             for file in files:
                 if file and file.filename:
-                    # Generate unique filename
-                    filename = secure_filename(file.filename)
-                    ext = filename.split('.')[-1] if '.' in filename else ''
-                    unique_name = f"{uuid.uuid4().hex}.{ext}" if ext else uuid.uuid4().hex
+                    try:
+                        upload_result = cloudinary.uploader.upload(
+                            file,
+                            folder="velvet_vogue/products",
+                            public_id=f"{uuid.uuid4().hex}",
+                            resource_type="image"
+                        )
+                        image_urls.append(upload_result['secure_url'])
 
-                    # Handle multiple image uploads via Cloudinary
-                    image_urls = []
-
-                    if 'images[]' in request.files:
-                        files = request.files.getlist('images[]')
-
-                        for file in files:
-                            if file and file.filename:
-                                try:
-                                    upload_result = cloudinary.uploader.upload(
-                                        file,
-                                        folder="velvet_vogue/products",
-                                        public_id=f"{uuid.uuid4().hex}",
-                                        resource_type="image"
-                                    )
-
-                                    image_urls.append(upload_result['secure_url'])
-
-                                except Exception as upload_error:
-                                    logger.error(f"Cloudinary upload failed: {str(upload_error)}")
+                    except Exception as upload_error:
+                        logger.error(f"Cloudinary upload failed: {str(upload_error)}")
 
         # Create new product
         product = Product(
@@ -1023,35 +1016,31 @@ def delete_product(product_id):
 
 @app.route('/admin/update-order/<int:order_id>', methods=['POST'])
 def update_order_status(order_id):
-    """Update order delivery status and send confirmation email"""
+    logger.info(f"Updating order {order_id}")  # Add this
     try:
         order = db.session.get(Order, order_id)
         if not order:
+            logger.error(f"Order {order_id} not found")  # Add this
             flash('Order not found', 'error')
             return redirect(url_for('admin_panel', _anchor='orders'))
 
         new_status = request.form.get('status', 'delivered')
+        logger.info(f"Setting order {order_id} status to {new_status}")  # Add this
+
         order.delivery_status = new_status
 
-        # Pay on Delivery: mark as paid automatically
         if order.payment_method == 'Pay on Delivery':
             order.payment_status = 'paid'
             flash('✅ Order marked as delivered and payment status updated to paid', 'success')
+        else:
+            flash('✅ Order marked as delivered', 'success')
 
         db.session.commit()
-
-        # Send delivery confirmation email
-        try:
-            email_service = EmailService()
-            email_service.send_delivery_confirmation(order)
-            if order.payment_method != 'Pay on Delivery':
-                flash('✅ Order marked as delivered and email sent to customer', 'success')
-        except Exception as email_err:
-            print(f"Delivery email error: {email_err}")
-            flash('⚠️ Order marked as delivered but email failed to send', 'warning')
+        logger.info(f"Order {order_id} updated successfully")  # Add this
 
     except Exception as e:
         db.session.rollback()
+        logger.error(f"Update order error: {str(e)}")  # Add this
         flash(f'Error updating order: {str(e)}', 'error')
 
     return redirect(url_for('admin_panel', _anchor='orders'))
@@ -1139,11 +1128,13 @@ def sync_cart():
 
         # Here you would sync with database cart for logged-in users
         # For now, just return success
-
-        return jsonify({
-            'success': True,
-            'message': 'Cart synced'
-        })
+        if not data:
+            return jsonify({'success': False, 'error': 'Invalid request: no JSON'}), 400
+        else:
+            return jsonify({
+                'success': True,
+                'message': 'Cart synced'
+            })
     except Exception as e:
         logger.error(f"Sync cart error: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 400
@@ -1153,7 +1144,8 @@ def sync_cart():
 def api_checkout():
     """Process checkout, create order, update stock, and send emails"""
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
+
 
         # Required fields validation
         required = ['customer', 'items', 'subtotal', 'delivery_fee', 'total', 'payment_method']
@@ -1412,8 +1404,9 @@ def init_db():
         print(f"❌ Database initialization failed: {str(e)}")
         raise
 
-@app.before_request
-def create_tables():
+# Remove the @app.before_request function entirely
+# Instead, initialize once when the app starts
+with app.app_context():
     db.create_all()
 
 if __name__ == '__main__':
