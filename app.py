@@ -1272,7 +1272,12 @@ def api_checkout():
                 return jsonify({'success': False, 'error': f'Product not found: {product_id}'}), 400
 
             # Validate stock BEFORE committing
-            available, msg = product.check_size_availability(item['size'], item['quantity'])
+            item_size = item.get('size')
+            if not item_size:
+                logger.error(f"Item missing size: {item}")
+                return jsonify({'success': False, 'error': 'Item missing size'}), 400
+
+            available, msg = product.check_size_availability(item_size, item['quantity'])
             if not available:
                 logger.error(f"Stock validation failed: {msg}")
                 return jsonify({'success': False, 'error': msg}), 400
