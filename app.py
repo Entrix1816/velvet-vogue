@@ -1209,25 +1209,6 @@ def api_orders():
         return jsonify({'success': False, 'error': str(e)}), 400
 
 
-@app.route('/api/cart/sync', methods=['POST'])
-def sync_cart():
-    """Sync local cart with server (for logged-in users)"""
-    try:
-        data = request.get_json() or {}
-        local_cart = data.get('cart', [])
-
-        # Here you would sync with database cart for logged-in users
-        # For now, just return success
-        if not data:
-            return jsonify({'success': False, 'error': 'Invalid request: no JSON'}), 400
-        else:
-            return jsonify({
-                'success': True,
-                'message': 'Cart synced'
-            })
-    except Exception as e:
-        logger.error(f"Sync cart error: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 400
 
 
 @app.route('/api/checkout', methods=['POST'])
