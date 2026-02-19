@@ -25,7 +25,12 @@ load_dotenv()
 
 app = Flask(__name__)
 
-cloudinary.config(secure=True)
+cloudinary.config(
+    cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),    # Identifies your account
+    api_key=os.getenv('CLOUDINARY_API_KEY'),           # Authenticates your app
+    api_secret=os.getenv('CLOUDINARY_API_SECRET'),     # Secret key for security
+    secure=True                                         # Use HTTPS URLs
+)
 
 # -------------------- CONFIGURATION FROM ENV --------------------
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_hex(32))
@@ -637,9 +642,11 @@ def admin_login():
         data = request.get_json() or {}
         email = data.get('email', '').lower()
         password = data.get('password', '')
+        remember = data.get('remember', False)
 
         # Check against environment variables
         if email != os.getenv('ADMIN_EMAIL', '').lower():
+            logger.warning(f"Failed login attempt for email: {email}")
             return jsonify({'success': False, 'error': 'Invalid credentials'}), 401
 
         # Get the stored hash from .env
@@ -647,6 +654,7 @@ def admin_login():
 
         # Check password against hash
         if not stored_hash or not check_password_hash(stored_hash, password):
+            logger.warning(f"Failed login attempt - invalid password for: {email}")
             return jsonify({'success': False, 'error': 'Invalid credentials'}), 401
 
         # Generate a simple token
@@ -655,7 +663,16 @@ def admin_login():
         # Store admin session
         session['admin_logged_in'] = True
         session['admin_token'] = token
-        session.permanent = True  # Use permanent session
+
+        # Set session lifetime based on remember me
+        if remember:
+            session.permanent = True
+            # You can set a custom lifetime if needed
+            # app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
+        else:
+            session.permanent = False
+
+        logger.info(f"Admin login successful: {email}")
 
         return jsonify({
             'success': True,
@@ -668,11 +685,17 @@ def admin_login():
         return jsonify({'success': False, 'error': str(e)}), 400
 
 
-@app.route('/api/admin/logout', methods=['POST'])
+@app.route('/admin/logout')
 def admin_logout():
-    """Logout admin"""
-    session.pop('admin_logged_in', None)
-    session.pop('admin_token', None)
+    """Logout admin and clear session"""
+    session.clear()
+    flash('Logged out successfully', 'success')
+    return redirect(url_for('admin_login_page'))
+
+@app.route('/api/admin/logout', methods=['POST'])
+def admin_api_logout():
+    """API endpoint for admin logout"""
+    session.clear()
     return jsonify({'success': True})
 
 
@@ -680,6 +703,7 @@ def admin_logout():
 def admin_panel():
     """Main admin dashboard"""
     if not session.get('admin_logged_in'):
+        flash('Please login to access the admin panel', 'error')
         return redirect(url_for('admin_login_page'))
 
     try:
@@ -801,16 +825,42 @@ def add_product():
             for file in files:
                 if file and file.filename:
                     try:
+                        allowed_extensions = {'png', 'jpg', 'gif', 'webp'}
+
+                        filename = secure_filename(file.filename)
+                        ext = filename.rslipt('.',1)[1].lower() if '.' in filename else ''
+
+                        if ext not in allowed_extensions:
+                            logger.warning(f"Skipping invalid filetype: {ext}")
+
+                            continue
+
+
                         upload_result = cloudinary.uploader.upload(
                             file,
                             folder="velvet_vogue/products",
                             public_id=f"{uuid.uuid4().hex}",
-                            resource_type="image"
+                            resource_type="image",
+                            overwrite=True,
+                            quality="auto:best",
+                            fetch_format="auto"
                         )
-                        image_urls.append(upload_result['secure_url'])
+                        if upload_result and 'secure_url' in upload_result:
+                            image_urls.append(upload_result['secure_url'])
+                            logger.info(f"Uploaded: {upload_result['secure_url']}")
+                        else:
+                            logger.error(f"Upload result missing secure_url: {upload_error}")
+                            flash(f"Image upload failed for {filename}", "warning")
+
 
                     except Exception as upload_error:
                         logger.error(f"Cloudinary upload failed: {str(upload_error)}")
+
+
+                    if not image_urls:
+                        image_urls = ['https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg']
+                        flash('Using placeholder image - no images uploaded', 'warning')
+
 
         # Create new product
         product = Product(
@@ -1066,6 +1116,36 @@ def update_payment_status(order_id):
 
     return redirect(url_for('admin_panel', _anchor='orders'))
 
+@app.route('/debug/test-checkout', methods=['POST'])
+def debug_test_checkout():
+    """Test endpoint for checkout"""
+    try:
+        data = request.get_json()
+        return jsonify({
+            'success': True,
+            'received_data': data,
+            'message': 'Test successful'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+
+@app.route('/debug/product-images/<int:product_id>')
+def debug_product_images(product_id):
+    """Debug route to check stored image URLs"""
+    if not session.get('admin_logged_in'):
+        return "Unauthorized", 401
+
+    product = db.session.get(Product, product_id)
+    if not product:
+        return "Product not found", 404
+
+    return {
+        'product_id': product.id,
+        'name': product.name,
+        'image_urls': product.image_urls,
+        'image_count': len(product.image_urls) if product.image_urls else 0
+    }
 
 # -------------------- API ROUTES (for dynamic frontend) --------------------
 @app.route('/api/products')
@@ -1146,12 +1226,20 @@ def api_checkout():
     try:
         data = request.get_json() or {}
 
+        # Log received data for debugging
+        logger.info(f"Checkout data received: {data}")
+        logger.info(f"Session cart: {session.get('cart', {})}")
 
         # Required fields validation
         required = ['customer', 'items', 'subtotal', 'delivery_fee', 'total', 'payment_method']
         for field in required:
             if field not in data:
+                logger.error(f"Missing field: {field}")
                 return jsonify({'success': False, 'error': f'Missing field: {field}'}), 400
+
+        # Validate items
+        if not data['items']:
+            return jsonify({'success': False, 'error': 'No items in order'}), 400
 
         # Create order
         order = Order(
@@ -1169,20 +1257,24 @@ def api_checkout():
 
         db.session.add(order)
         db.session.flush()  # Ensure order.id is available
+        logger.info(f"Order created with ID: {order.id}")
 
         # Create order items and handle stock update
         for item in data['items']:
             product_id = item.get('product_id') or item.get('id')
             if not product_id:
+                logger.error(f"Item missing product_id: {item}")
                 return jsonify({'success': False, 'error': 'Item missing product_id'}), 400
 
             product = db.session.get(Product, product_id)
             if not product:
+                logger.error(f"Product not found: {product_id}")
                 return jsonify({'success': False, 'error': f'Product not found: {product_id}'}), 400
 
             # Validate stock BEFORE committing
             available, msg = product.check_size_availability(item['size'], item['quantity'])
             if not available:
+                logger.error(f"Stock validation failed: {msg}")
                 return jsonify({'success': False, 'error': msg}), 400
 
             # Create order item
@@ -1194,6 +1286,7 @@ def api_checkout():
                 price=item['price']
             )
             db.session.add(order_item)
+            logger.info(f"Order item added: {product.name} x {item['quantity']}")
 
             # Only deduct stock if payment is confirmed
             if data.get('payment_status') == 'paid':
@@ -1202,16 +1295,24 @@ def api_checkout():
                 product.sizes = sizes
                 product.stock = sum(sizes.values())
                 product.sold_count += item['quantity']
+                logger.info(f"Stock updated for {product.name}")
 
         db.session.commit()
+        logger.info(f"Order {order.order_number} committed to database")
+
+        # Clear the cart from session after successful order
+        session.pop('cart', None)
+        logger.info("Cart cleared from session")
 
         # Send emails after commit
         try:
             email_service = EmailService()
             email_service.send_order_confirmation(order, order.items)  # Customer
-            email_service.send_admin_notification(order, order.items)   # Admin
+            email_service.send_admin_notification(order, order.items)  # Admin
+            logger.info("Confirmation emails sent")
         except Exception as email_err:
-            print(f"Email sending failed: {email_err}")
+            logger.error(f"Email sending failed: {email_err}")
+            # Don't fail the order if emails don't send
 
         return jsonify({
             'success': True,
@@ -1221,7 +1322,7 @@ def api_checkout():
 
     except Exception as e:
         db.session.rollback()
-        print(f"Checkout error: {str(e)}")
+        logger.error(f"Checkout error: {str(e)}", exc_info=True)  # exc_info gives full traceback
         return jsonify({'success': False, 'error': str(e)}), 400
 
 
@@ -1263,6 +1364,34 @@ def api_register():
         logger.error(f"Register error: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 400
 
+
+@app.route('/api/admin/verify-token', methods=['POST'])
+def verify_admin_token():
+    """Verify if admin token is valid"""
+    try:
+        # Get token from Authorization header
+        auth_header = request.headers.get('Authorization', '')
+        token = None
+
+        if auth_header.startswith('Bearer '):
+            token = auth_header[7:]  # Remove 'Bearer ' prefix
+        elif request.is_json:
+            # Also check if token is in JSON body
+            token = request.json.get('token')
+
+        if not token:
+            return jsonify({'valid': False, 'error': 'No token provided'}), 401
+
+        # Check if token matches session
+        if session.get('admin_logged_in') and session.get('admin_token') == token:
+            return jsonify({'valid': True, 'message': 'Token is valid'})
+
+        # If token doesn't match session, it's invalid
+        return jsonify({'valid': False, 'error': 'Invalid token'}), 401
+
+    except Exception as e:
+        logger.error(f"Token verification error: {str(e)}")
+        return jsonify({'valid': False, 'error': str(e)}), 400
 
 # -------------------- INITIALIZATION --------------------
 @app.cli.command("init-db")
