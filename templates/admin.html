@@ -1131,7 +1131,7 @@
         <button class="nav-item" data-section="orders">ORDERS</button>
         <button class="nav-item" data-section="customers">CUSTOMERS</button>
         <button class="nav-item" data-section="email-queue">📧 EMAIL</button>
-        <a href="/" class="nav-item logout" data-section="logout">LOGOUT</a>
+        <a href="/admin/logout" class="nav-item logout" data-section="logout">LOGOUT</a>
     </nav>
 
     <!-- DASHBOARD SECTION -->
@@ -1681,21 +1681,25 @@
 
         // ---- DELIVERY CONFIRMATION ----
         window.confirmDelivery = function(orderId) {
-            if (confirm('Mark this order as delivered? A confirmation email will be sent to the customer.')) {
-                showToast('Processing delivery confirmation...');
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = `/admin/update-order/${orderId}`;
-                form.style.display = 'none';
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'status';
-                input.value = 'delivered';
-                form.appendChild(input);
-                document.body.appendChild(form);
-                form.submit();
-            }
+            if (!confirm('Mark this order as delivered? A confirmation email will be sent to the customer.')) return;
+
+            showToast('Processing delivery confirmation...');
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/admin/update-order/${orderId}`;
+            form.style.display = 'none';
+
+            const statusInput = document.createElement('input');
+            statusInput.type = 'hidden';
+            statusInput.name = 'status';
+            statusInput.value = 'delivered';
+            form.appendChild(statusInput);
+
+            document.body.appendChild(form);
+            form.submit();
         };
+
 
         // ---- EMAIL QUEUE FUNCTIONS ----
         window.refreshQueueStats = function() {
