@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Admin Login · Velvet Vogue</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Velvet Vogue · admin panel</title>
     <style>
         * {
             margin: 0;
@@ -15,121 +15,313 @@
         body {
             background: #0c0a0b;
             color: #f0e2e8;
+            line-height: 1.5;
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-        }
-
-        /* Login Container */
-        .login-container {
-            width: 100%;
-            max-width: 400px;
-            margin: 1rem auto;
-            animation: fadeIn 0.6s ease-out;
-            max-height: 95vh;
-            overflow-y: auto;
-            scrollbar-width: thin;
-            scrollbar-color: #c88eaa #2f242b;
             padding: 0.5rem;
         }
 
-        .login-container::-webkit-scrollbar {
-            width: 4px;
+        @media (min-width: 768px) {
+            body {
+                padding: 1rem;
+            }
         }
 
-        .login-container::-webkit-scrollbar-track {
-            background: #2f242b;
-            border-radius: 10px;
-        }
-
-        .login-container::-webkit-scrollbar-thumb {
-            background: #c88eaa;
-            border-radius: 10px;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .login-card {
-            background: rgba(18, 13, 16, 0.9);
+        /* glassmorphism base */
+        .glass-panel {
+            background: rgba(18, 14, 16, 0.7);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(210, 150, 180, 0.2);
-            border-radius: 32px;
-            padding: 2rem 1.8rem;
-            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(200, 150, 170, 0.15);
+            border-radius: 24px;
+            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(220, 160, 180, 0.1) inset;
         }
 
-        /* Header */
-        .login-header {
-            text-align: center;
-            margin-bottom: 1.8rem;
+        @media (min-width: 768px) {
+            .glass-panel {
+                border-radius: 32px;
+            }
         }
 
-        .login-logo {
-            font-size: 1.8rem;
-            font-weight: 300;
-            letter-spacing: 4px;
-            color: #ffd2e6;
-            text-decoration: none;
-            text-shadow: 0 0 15px #b76e79;
-            display: inline-block;
-            margin-bottom: 0.5rem;
+        /* main container */
+        .admin-container {
+            max-width: 1600px;
+            margin: 0 auto;
         }
 
-        .login-logo span {
-            color: #c88eaa;
-        }
-
-        .login-title {
-            font-size: 1.4rem;
-            font-weight: 300;
-            color: #ffd2e6;
-            margin-bottom: 0.25rem;
-        }
-
-        .login-subtitle {
-            color: #b295aa;
-            font-size: 0.85rem;
-            letter-spacing: 0.5px;
-        }
-
-        /* Form */
-        .login-form {
+        /* ---- sticky navigation ---- */
+        .navbar {
+            position: sticky;
+            top: 0.5rem;
+            z-index: 100;
             display: flex;
-            flex-direction: column;
-            gap: 1.2rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            background: rgba(10, 8, 10, 0.95);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(210, 140, 170, 0.2);
+            border-radius: 40px;
+            padding: 0.8rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 15px 35px -10px #000000;
+        }
+
+        @media (min-width: 768px) {
+            .navbar {
+                flex-wrap: nowrap;
+                gap: 0.5rem 1.8rem;
+                padding: 1rem 2.2rem;
+                margin-bottom: 2.5rem;
+                top: 1rem;
+            }
+        }
+
+        .nav-item {
+            color: #dfc9d4;
+            font-weight: 400;
+            letter-spacing: 1px;
+            padding: 0.6rem 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+            font-size: 0.9rem;
+            text-decoration: none;
+            background: transparent;
+            border: none;
+            font-family: inherit;
+            flex: 1 0 auto;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @media (min-width: 768px) {
+            .nav-item {
+                font-size: 1.1rem;
+                padding: 0.5rem 0.2rem;
+                flex: none;
+            }
+        }
+
+        .nav-item:hover {
+            color: #ffdae9;
+            text-shadow: 0 0 10px #dd9eb6;
+            border-bottom-color: #d49bb2;
+        }
+
+        .nav-item.active-nav {
+            color: #ffd1e2;
+            border-bottom-color: #f5b0cb;
+            font-weight: 500;
+            text-shadow: 0 0 8px #edafc7;
+        }
+
+        .logout {
+            color: #cfa2b7;
+            margin-left: auto;
+        }
+
+        /* ---- sections ---- */
+        .admin-section {
+            display: none;
+            animation: fadeSlide 0.5s cubic-bezier(0.2, 0.9, 0.3, 1);
+        }
+
+        .admin-section.active-section {
+            display: block;
+        }
+
+        @keyframes fadeSlide {
+            0% { opacity: 0; transform: translateY(12px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ---- dashboard stat cards ---- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                gap: 1.8rem;
+                margin-bottom: 2.5rem;
+            }
+        }
+
+        .stat-card {
+            background: rgba(22, 16, 20, 0.7);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(210, 150, 175, 0.25);
+            border-radius: 30px;
+            padding: 1.5rem 1rem;
+            transition: all 0.4s;
+            box-shadow: 0 20px 30px -15px black;
+            text-align: center;
+        }
+
+        @media (min-width: 768px) {
+            .stat-card {
+                padding: 2rem 1.8rem;
+                border-radius: 40px;
+            }
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            border-color: #cb9eb6;
+            box-shadow: 0 0 30px #b3849e;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #b295aa;
+            margin-bottom: 0.8rem;
+        }
+
+        @media (min-width: 768px) {
+            .stat-label {
+                font-size: 1.1rem;
+                letter-spacing: 2.5px;
+                margin-bottom: 1rem;
+            }
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 300;
+            color: #f5d6e5;
+            text-shadow: 0 0 20px #c27995;
+        }
+
+        @media (min-width: 768px) {
+            .stat-value {
+                font-size: 2rem;
+            }
+        }
+
+        .empty-dashboard-icon {
+            font-size: 2rem;
+            margin-bottom: 0.8rem;
+            color: #6f4d5e;
+        }
+
+        .empty-message {
+            text-align: center;
+            padding: 2rem 1rem;
+        }
+
+        @media (min-width: 768px) {
+            .empty-message {
+                padding: 4rem 2rem;
+            }
+        }
+
+        .empty-message h3 {
+            font-size: 1.3rem;
+            font-weight: 300;
+            color: #ffd2e6;
+            margin-bottom: 0.8rem;
+        }
+
+        @media (min-width: 768px) {
+            .empty-message h3 {
+                font-size: 2rem;
+                margin-bottom: 1rem;
+            }
+        }
+
+        .empty-message p {
+            color: #b295aa;
+            font-size: 0.95rem;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .quick-actions {
+            display: flex;
+            justify-content: center;
+            gap: 0.8rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .quick-action-btn {
+            background: rgba(30, 20, 25, 0.7);
+            border: 1px solid #a06f88;
+            border-radius: 40px;
+            padding: 0.7rem 1.5rem;
+            color: #ffd2e6;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            min-height: 44px;
+        }
+
+        @media (min-width: 768px) {
+            .quick-action-btn {
+                padding: 0.8rem 2rem;
+                font-size: 1rem;
+            }
+        }
+
+        /* ---- forms ---- */
+        .form-panel {
+            background: rgba(18, 13, 16, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(210, 150, 180, 0.2);
+            border-radius: 24px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .form-panel {
+                border-radius: 48px;
+                padding: 2.5rem;
+                margin-bottom: 2.5rem;
+            }
+        }
+
+        .form-title {
+            font-size: 1.5rem;
+            font-weight: 300;
+            letter-spacing: 1px;
+            margin-bottom: 1.5rem;
+            color: #ffddee;
+            border-left: 4px solid #c88eaa;
+            padding-left: 1rem;
+        }
+
+        @media (min-width: 768px) {
+            .form-title {
+                font-size: 2rem;
+                letter-spacing: 2px;
+                margin-bottom: 2rem;
+                border-left: 6px solid #c88eaa;
+                padding-left: 1.5rem;
+            }
         }
 
         .form-group {
-            position: relative;
+            margin-bottom: 1.5rem;
         }
 
         .form-label {
             display: block;
-            margin-bottom: 0.3rem;
-            color: #dbbacb;
-            font-size: 0.8rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
             letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-
-        .input-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-
-        .input-icon {
-            position: absolute;
-            left: 1rem;
-            color: #b295aa;
-            font-size: 1rem;
-            z-index: 1;
+            color: #dbbacb;
         }
 
         .form-control {
@@ -137,418 +329,1584 @@
             background: rgba(8, 5, 7, 0.8);
             border: 1px solid #5f4753;
             border-radius: 40px;
-            padding: 0.9rem 1rem 0.9rem 2.8rem;
+            padding: 0.8rem 1.5rem;
             color: white;
-            font-size: 0.95rem;
-            transition: all 0.3s ease;
+            font-size: 1rem;
+            transition: 0.3s;
             outline: none;
+            min-height: 48px;
+        }
+
+        @media (min-width: 768px) {
+            .form-control {
+                padding: 1.2rem 2rem;
+                font-size: 1.1rem;
+            }
         }
 
         .form-control:focus {
-            border-color: #c88eaa;
-            box-shadow: 0 0 20px rgba(200, 142, 170, 0.2);
+            border-color: #dd9eb6;
+            box-shadow: 0 0 30px #b35f82;
         }
 
-        .form-control.error {
-            border-color: #b55a5a;
+        textarea.form-control {
+            border-radius: 30px;
+            resize: vertical;
+            min-height: 80px;
         }
 
-        .error-message {
-            color: #ffb3b3;
-            font-size: 0.75rem;
-            margin-top: 0.2rem;
-            padding-left: 1rem;
-            min-height: 1rem;
-        }
-
-        /* Password Toggle */
-        .password-toggle {
-            position: absolute;
-            right: 1rem;
-            background: transparent;
-            border: none;
-            color: #b295aa;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: all 0.2s ease;
-            z-index: 1;
-            padding: 0.2rem;
-        }
-
-        .password-toggle:hover {
-            color: #c88eaa;
-        }
-
-        /* Options */
-        .login-options {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: 0.2rem 0;
-            font-size: 0.85rem;
-        }
-
-        .remember-me {
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            color: #b295aa;
-            cursor: pointer;
-        }
-
-        .remember-me input[type="checkbox"] {
-            width: 14px;
-            height: 14px;
-            cursor: pointer;
-            accent-color: #c88eaa;
-        }
-
-        .forgot-link {
-            color: #b295aa;
-            text-decoration: none;
-            font-size: 0.85rem;
-            transition: color 0.2s ease;
-        }
-
-        .forgot-link:hover {
-            color: #c88eaa;
-            text-decoration: underline;
-        }
-
-        /* Login Button */
-        .login-btn {
-            background: transparent;
-            border: 1.5px solid #c293ae;
-            color: #fadff2;
-            padding: 1rem;
-            border-radius: 40px;
-            font-size: 1rem;
-            font-weight: 500;
-            letter-spacing: 1.5px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            margin-top: 0.5rem;
-        }
-
-        .login-btn:hover {
-            background: #c997b5;
-            border-color: #ffc0dd;
-            color: #0c080b;
-            box-shadow: 0 0 30px #f7a9cb;
-            transform: translateY(-2px);
-        }
-
-        .login-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .login-btn.loading {
-            position: relative;
-            color: transparent;
-        }
-
-        .login-btn.loading::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 20px;
-            height: 20px;
-            margin: -10px 0 0 -10px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top-color: #c88eaa;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Home Link */
-        .home-link {
-            text-align: center;
-            margin-top: 1.5rem;
-        }
-
-        .home-link a {
-            color: #b295aa;
-            text-decoration: none;
-            font-size: 0.85rem;
-            transition: all 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-
-        .home-link a:hover {
-            color: #c88eaa;
-            gap: 0.5rem;
-        }
-
-        .home-link a span {
-            font-size: 1rem;
-        }
-
-        /* Toast Notification */
-        .toast {
-            position: fixed;
-            bottom: 1.5rem;
-            right: 1.5rem;
-            background: #1d141b;
-            border: 1px solid #d49bb2;
+        .form-select {
+            width: 100%;
+            background: rgba(8, 5, 7, 0.8);
+            border: 1px solid #5f4753;
             border-radius: 40px;
             padding: 0.8rem 1.5rem;
-            color: #ffdfee;
-            box-shadow: 0 0 30px #ad6185;
-            z-index: 1000;
-            animation: slideIn 0.3s ease;
+            color: white;
+            font-size: 1rem;
+            transition: 0.3s;
+            outline: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23b295aa'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1.2rem;
+            min-height: 48px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        @media (min-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr 1fr;
+                gap: 1.5rem;
+            }
+        }
+
+        /* Size inventory grid */
+        .size-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.8rem;
+            margin: 1rem 0;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 30px;
+            border: 1px solid #5f4753;
+        }
+
+        @media (min-width: 480px) {
+            .size-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (min-width: 768px) {
+            .size-grid {
+                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+                gap: 1rem;
+                padding: 1.5rem;
+            }
+        }
+
+        .size-item {
+            text-align: center;
+        }
+
+        .size-label {
+            display: block;
+            margin-bottom: 0.3rem;
+            color: #dbbacb;
+            font-weight: 500;
             font-size: 0.9rem;
         }
 
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(100%);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
+        .size-input {
+            width: 100%;
+            background: rgba(8, 5, 7, 0.8);
+            border: 1px solid #5f4753;
+            border-radius: 30px;
+            padding: 0.6rem;
+            color: white;
+            text-align: center;
+            font-size: 0.9rem;
+            min-height: 44px;
+        }
+
+        .size-input:focus {
+            border-color: #dd9eb6;
+            box-shadow: 0 0 20px #b35f82;
+            outline: none;
+        }
+
+        /* ---- stock badges ---- */
+        .stock-badge {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+            margin: 0.3rem 0;
+        }
+
+        @media (min-width: 768px) {
+            .stock-badge {
+                padding: 0.3rem 1rem;
+                font-size: 0.8rem;
             }
         }
 
-        .toast.error {
-            background: #3d1a1a;
-            border-color: #b55a5a;
+        .in-stock {
+            background: rgba(70, 130, 100, 0.2);
+            border: 1px solid #5a9e7a;
+            color: #b8e0cb;
         }
 
-        /* Responsive */
-        @media (max-width: 480px) {
-            .login-card {
+        .low-stock {
+            background: rgba(180, 130, 50, 0.2);
+            border: 1px solid #c9a45b;
+            color: #ffd9a3;
+        }
+
+        .sold-out {
+            background: rgba(150, 70, 70, 0.2);
+            border: 1px solid #b55a5a;
+            color: #ffb3b3;
+        }
+
+        /* ---- multiple image upload ---- */
+        .file-upload {
+            border: 2px dashed #7d5f6f;
+            border-radius: 40px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: 0.3s;
+            background: rgba(0,0,0,0.3);
+            cursor: pointer;
+            min-height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @media (min-width: 768px) {
+            .file-upload {
+                border-radius: 60px;
+                padding: 2.5rem;
+                min-height: auto;
+            }
+        }
+
+        .file-upload input[type="file"] {
+            display: none;
+        }
+
+        .upload-label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .upload-icon {
+            font-size: 2rem;
+            color: #cfa5bb;
+            margin-bottom: 0.5rem;
+        }
+
+        .file-list {
+            margin-top: 1rem;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.8rem 1rem;
+            background: rgba(30, 20, 25, 0.8);
+            border-radius: 40px;
+            margin-bottom: 0.3rem;
+            border: 1px solid #6f4d5e;
+            font-size: 0.9rem;
+        }
+
+        .remove-file {
+            color: #ff8aa1;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.3rem;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: 0.2s;
+        }
+
+        /* preview grid */
+        .image-preview {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        @media (min-width: 768px) {
+            .image-preview {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                gap: 1rem;
+                margin-top: 2rem;
+            }
+        }
+
+        .preview-item {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 2px solid #a95f82;
+            animation: popIn 0.3s ease;
+        }
+
+        .preview-item.primary {
+            border: 3px solid #f5b0cb;
+        }
+
+        .preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .preview-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: 0.2s;
+            font-size: 0.7rem;
+            color: white;
+        }
+
+        .primary-badge {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            background: #f5b0cb;
+            color: black;
+            padding: 2px 6px;
+            border-radius: 20px;
+            font-size: 0.6rem;
+            font-weight: bold;
+            z-index: 2;
+        }
+
+        .btn-glow {
+            background: transparent;
+            border: 2px solid #c293ae;
+            color: #fadff2;
+            padding: 0.8rem 1.5rem;
+            border-radius: 40px;
+            font-size: 1rem;
+            font-weight: 400;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: 0.4s;
+            backdrop-filter: blur(8px);
+            margin-top: 0.8rem;
+            width: 100%;
+            min-height: 52px;
+        }
+
+        @media (min-width: 768px) {
+            .btn-glow {
+                padding: 1.2rem 3rem;
+                font-size: 1.3rem;
+                letter-spacing: 2px;
+                margin-top: 1rem;
+            }
+        }
+
+        .btn-glow:hover {
+            background: #c997b5;
+            border-color: #ffc0dd;
+            color: #0c080b;
+            box-shadow: 0 0 50px #f7a9cb;
+            transform: scale(1.02);
+        }
+
+        /* product cards */
+        .product-grid-admin {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        @media (min-width: 640px) {
+            .product-grid-admin {
+                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            }
+        }
+
+        @media (min-width: 768px) {
+            .product-grid-admin {
+                gap: 2rem;
+                margin-top: 2rem;
+            }
+        }
+
+        .product-admin-card {
+            background: #161115;
+            border-radius: 28px;
+            padding: 1.2rem;
+            border: 1px solid #443a40;
+            transition: 0.3s;
+        }
+
+        @media (min-width: 768px) {
+            .product-admin-card {
+                border-radius: 36px;
                 padding: 1.5rem;
             }
+        }
 
-            .login-logo {
-                font-size: 1.5rem;
-                letter-spacing: 3px;
+        .product-thumb {
+            width: 100%;
+            aspect-ratio: 1/1;
+            border-radius: 24px;
+            object-fit: cover;
+            background: #2f242b;
+            margin-bottom: 1rem;
+        }
+
+        .size-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.3rem;
+            margin: 0.5rem 0;
+        }
+
+        .size-badge {
+            background: rgba(200, 150, 170, 0.2);
+            border: 1px solid #a06f88;
+            border-radius: 30px;
+            padding: 0.2rem 0.6rem;
+            font-size: 0.7rem;
+            color: #ffd2e6;
+        }
+
+        @media (min-width: 768px) {
+            .size-badge {
+                padding: 0.2rem 0.8rem;
+                font-size: 0.8rem;
             }
+        }
 
-            .login-title {
-                font-size: 1.2rem;
+        .product-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 0.5rem 0;
+            font-size: 0.8rem;
+            color: #b295aa;
+            flex-wrap: wrap;
+            gap: 0.3rem;
+        }
+
+        .row-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .icon-btn {
+            background: rgba(30, 20, 25, 0.7);
+            border: 1px solid #a06f88;
+            border-radius: 40px;
+            padding: 0.6rem 1rem;
+            color: #ffd2e6;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: 0.3s;
+            backdrop-filter: blur(4px);
+            flex: 1;
+            min-height: 44px;
+        }
+
+        @media (min-width: 768px) {
+            .icon-btn {
+                padding: 0.5rem 1.3rem;
+                font-size: 0.9rem;
             }
+        }
 
-            .login-options {
-                flex-direction: column;
-                gap: 0.8rem;
-                align-items: flex-start;
+        .stock-update {
+            display: flex;
+            gap: 0.3rem;
+            margin-top: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .stock-update input {
+            width: 100%;
+            padding: 0.6rem;
+            background: #231b20;
+            border: 1px solid #6f4d5e;
+            border-radius: 30px;
+            color: white;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        /* categories grid */
+        .categories-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .category-tag {
+            background: rgba(30, 20, 25, 0.7);
+            border: 1px solid #a06f88;
+            border-radius: 40px;
+            padding: 0.4rem 1rem;
+            color: #ffd2e6;
+            font-size: 0.8rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .delete-category {
+            color: #ff8aa1;
+            cursor: pointer;
+            font-size: 1.1rem;
+            margin-left: 0.3rem;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        /* orders table */
+        .orders-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+
+        @media (min-width: 768px) {
+            .orders-table {
+                font-size: 0.9rem;
             }
+        }
 
+        .orders-table th {
+            text-align: left;
+            padding: 1rem 0.5rem;
+            color: #b28fa3;
+            font-weight: 400;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #513f49;
+        }
+
+        .orders-table td {
+            padding: 1rem 0.5rem;
+            border-bottom: 1px solid #2f252b;
+        }
+
+        .status-badge {
+            background: #2a1d25;
+            border-radius: 60px;
+            padding: 0.3rem 0.8rem;
+            border: 1px solid #b07995;
+            display: inline-block;
+            font-size: 0.75rem;
+        }
+
+        .mark-delivered {
+            background: transparent;
+            border: 1px solid #b47f9b;
+            border-radius: 40px;
+            padding: 0.4rem 1rem;
+            color: #ffd2e6;
+            transition: 0.3s;
+            cursor: pointer;
+            font-size: 0.75rem;
+            min-height: 36px;
+        }
+
+        @media (min-width: 768px) {
+            .mark-delivered {
+                padding: 0.5rem 1.5rem;
+                font-size: 0.85rem;
+            }
+        }
+
+        /* customers table */
+        .customers-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(0,0,0,0.3);
+            border-radius: 24px;
+            overflow: hidden;
+            font-size: 0.8rem;
+        }
+
+        .customers-table th {
+            padding: 1rem 0.5rem;
+            text-align: left;
+            color: #c88eaa;
+            border-bottom: 1px solid #332b30;
+            background: rgba(200,142,170,0.1);
+        }
+
+        .customers-table td {
+            padding: 1rem 0.5rem;
+            border-bottom: 1px solid #332b30;
+        }
+
+        .customer-avatar {
+            width: 36px;
+            height: 36px;
+            background: #c88eaa;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: black;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        /* modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            backdrop-filter: blur(8px);
+            align-items: flex-start;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        .modal.active-modal {
+            display: flex;
+        }
+
+        .modal-content {
+            max-width: 500px;
+            width: 100%;
+            background: #171215;
+            border-radius: 40px;
+            padding: 1.5rem;
+            border: 1px solid #be8aa8;
+            box-shadow: 0 0 100px #a04070;
+            animation: modalRise 0.4s;
+            margin: auto;
+        }
+
+        @media (min-width: 768px) {
+            .modal-content {
+                border-radius: 60px;
+                padding: 2.5rem;
+            }
+        }
+
+        .modal-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .modal h3 {
+            color: #ffd2e6;
+            margin-bottom: 0.5rem;
+            font-size: 1.4rem;
+        }
+
+        .modal p {
+            color: #b295aa;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.8rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .modal-btn {
+            background: transparent;
+            border: 1px solid #a06f88;
+            border-radius: 40px;
+            padding: 0.8rem 1.5rem;
+            color: #ffd2e6;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 0.9rem;
+            min-width: 120px;
+            min-height: 48px;
+        }
+
+        .modal-btn.confirm {
+            background: #c88eaa;
+            border-color: #ffbbd9;
+            color: black;
+        }
+
+        /* toast */
+        .toast {
+            position: fixed;
+            bottom: 1rem;
+            left: 1rem;
+            right: 1rem;
+            background: #1d141b;
+            border: 1px solid #d49bb2;
+            border-radius: 60px;
+            padding: 1rem;
+            color: #ffdfee;
+            box-shadow: 0 0 50px #ad6185;
+            animation: toastFade 3s forwards;
+            z-index: 2000;
+            text-align: center;
+            font-size: 0.95rem;
+        }
+
+        @media (min-width: 768px) {
             .toast {
-                left: 1rem;
-                right: 1rem;
-                bottom: 1rem;
-                text-align: center;
+                bottom: 2rem;
+                right: 2rem;
+                left: auto;
+                padding: 1.2rem 2.5rem;
             }
+        }
+
+        @keyframes toastFade {
+            0% { opacity: 0; transform: translateY(30px); }
+            10% { opacity: 1; transform: translateY(0); }
+            90% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(30px); }
+        }
+
+        /* customer row */
+        .customer-row {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding: 1rem;
+            border-bottom: 1px solid #332b30;
+        }
+
+        @media (min-width: 768px) {
+            .customer-row {
+                flex-direction: row;
+                justify-content: space-between;
+                padding: 1.5rem;
+            }
+        }
+
+        .customer-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-box {
+            background: rgba(30, 20, 25, 0.7);
+            padding: 1rem;
+            border-radius: 24px;
+            text-align: center;
+        }
+
+        .stat-box .number {
+            font-size: 1.5rem;
+            color: #ffd2e6;
+        }
+
+        .stat-box .label {
+            color: #b295aa;
+            font-size: 0.8rem;
+        }
+
+        .search-box {
+            margin-bottom: 1.5rem;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.8rem 1.2rem;
+            background: rgba(30,20,25,0.8);
+            border: 1px solid #6f4d5e;
+            border-radius: 40px;
+            color: white;
+            font-size: 0.95rem;
+            min-height: 48px;
+        }
+
+        .recent-activity {
+            margin-top: 1.5rem;
+            background: rgba(200,142,170,0.05);
+            border-radius: 24px;
+            padding: 1rem;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.8rem;
+            background: rgba(0,0,0,0.2);
+            border-radius: 20px;
+            margin-bottom: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        @media (min-width: 768px) {
+            .activity-item {
+                flex-wrap: nowrap;
+            }
+        }
+
+        .form-note {
+            font-size: 0.8rem;
+            color: #9a8793;
+            margin-top: 0.5rem;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* table container for horizontal scroll on mobile */
+        .table-container {
+            overflow-x: auto;
+            margin: 0 -1rem;
+            padding: 0 1rem;
+        }
+
+        .table-container table {
+            min-width: 600px;
         }
     </style>
 </head>
 <body>
-    <!-- Login Container - Scrollable -->
-    <div class="login-container">
-        <div class="login-card">
-            <!-- Header -->
-            <div class="login-header">
-                <a href="/" class="login-logo">VELVET<span>VOGUE</span></a>
-                <h1 class="login-title">ADMIN LOGIN</h1>
-                <p class="login-subtitle">Enter your credentials</p>
+<div class="admin-container">
+
+    <!-- STICKY NAV -->
+    <nav class="navbar">
+        <button class="nav-item active-nav" data-section="dashboard">DASHBOARD</button>
+        <button class="nav-item" data-section="products">PRODUCTS</button>
+        <button class="nav-item" data-section="orders">ORDERS</button>
+        <button class="nav-item" data-section="customers">CUSTOMERS</button>
+        <button class="nav-item" data-section="email-queue">📧 EMAIL</button>
+        <a href="/api/admin/logout" class="nav-item logout" data-section="logout">LOGOUT</a>
+    </nav>
+
+    <!-- DASHBOARD SECTION -->
+    <section id="dashboard" class="admin-section active-section">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="empty-dashboard-icon">📦</div>
+                <div class="stat-label">TOTAL PRODUCTS</div>
+                <div class="stat-value">{{ total_products if total_products else '—' }}</div>
             </div>
-
-            <!-- Login Form -->
-            <form class="login-form" id="loginForm" onsubmit="handleLogin(event)">
-                <!-- Email Field -->
-                <div class="form-group">
-                    <label class="form-label" for="email">EMAIL</label>
-                    <div class="input-wrapper">
-                        <span class="input-icon">📧</span>
-                        <input type="email" id="email" class="form-control" placeholder="admin@velvetvogue.ng" required autofocus>
-                    </div>
-                    <div class="error-message" id="emailError"></div>
-                </div>
-
-                <!-- Password Field -->
-                <div class="form-group">
-                    <label class="form-label" for="password">PASSWORD</label>
-                    <div class="input-wrapper">
-                        <span class="input-icon">🔒</span>
-                        <input type="password" id="password" class="form-control" placeholder="••••••••" required>
-                        <button type="button" class="password-toggle" onclick="togglePassword()" id="toggleBtn">👁️</button>
-                    </div>
-                    <div class="error-message" id="passwordError"></div>
-                </div>
-
-                <!-- Options -->
-                <div class="login-options">
-                    <label class="remember-me">
-                        <input type="checkbox" id="remember"> Keep me signed in
-                    </label>
-                </div>
-
-                <!-- Login Button -->
-                <button type="submit" class="login-btn" id="loginBtn">LOGIN</button>
-            </form>
-
-            <!-- Home Link -->
-            <div class="home-link">
-                <a href="/">
-                    <span>←</span> BACK TO HOMEPAGE
-                </a>
+            <div class="stat-card">
+                <div class="empty-dashboard-icon">🛒</div>
+                <div class="stat-label">TOTAL ORDERS</div>
+                <div class="stat-value">{{ total_orders if total_orders else '—' }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="empty-dashboard-icon">⏳</div>
+                <div class="stat-label">PENDING</div>
+                <div class="stat-value">{{ pending_deliveries if pending_deliveries else '—' }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="empty-dashboard-icon">💰</div>
+                <div class="stat-label">REVENUE</div>
+                <div class="stat-value">{% if revenue %}₦{{ "{:,.0f}".format(revenue) }}{% else %}—{% endif %}</div>
             </div>
         </div>
+
+        <div class="glass-panel empty-message">
+            <h3>✨ your velvet journey begins here</h3>
+            <p>Welcome to your admin sanctuary. This dashboard shows real-time insights about your products, orders, and customers.</p>
+            <div class="quick-actions">
+                <button class="quick-action-btn" onclick="activateSection('products')">➕ MANAGE PRODUCTS</button>
+                <button class="quick-action-btn" onclick="location.reload()">📋 REFRESH</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- PRODUCTS SECTION -->
+    <section id="products" class="admin-section">
+        <!-- ADD CATEGORY FORM -->
+        <div class="form-panel">
+            <h2 class="form-title">MANAGE CATEGORIES</h2>
+            <form method="POST" action="/admin/add-category" id="addCategoryForm">
+                <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;">
+                    <input type="text" name="name" class="form-control" placeholder="New category name (e.g., 'handbags')" required>
+                    <button type="submit" class="icon-btn" style="padding: 1rem;">ADD CATEGORY</button>
+                </div>
+            </form>
+
+            <div class="categories-grid">
+                {% if categories %}
+                    {% for category in categories %}
+                    <span class="category-tag">
+                        {{ category.name|upper }}
+                        <span class="delete-category" onclick="deleteCategory({{ category.id }})">✕</span>
+                    </span>
+                    {% endfor %}
+                {% else %}
+                    <p style="color: #9a8793;">No categories yet. Add your first category above.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- ADD PRODUCT FORM -->
+        <div class="form-panel">
+            <h2 class="form-title">ADD NEW PRODUCT</h2>
+            <form method="POST" action="/admin/add-product" enctype="multipart/form-data" id="addProductForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">PRODUCT NAME</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">PRICE (₦)</label>
+                        <input type="number" name="price" class="form-control" step="0.01" min="0" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">CATEGORY</label>
+                    <select name="category" class="form-select" required>
+                        <option value="">Select Category</option>
+                        {% if categories %}
+                            {% for category in categories %}
+                            <option value="{{ category.id }}">{{ category.name|upper }}</option>
+                            {% endfor %}
+                        {% endif %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">SIZE INVENTORY</label>
+                    <div class="size-grid">
+                        {% for size in ['XS', 'S', 'M', 'L', 'XL', 'XXL'] %}
+                        <div class="size-item">
+                            <label class="size-label">{{ size }}</label>
+                            <input type="number" name="size_{{ size }}" class="size-input" min="0" value="0" placeholder="Qty">
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="form-note">Enter quantity available for each size. Total stock will be calculated automatically.</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">DESCRIPTION</label>
+                    <textarea name="description" class="form-control" rows="4" placeholder="Detailed product description..."></textarea>
+                </div>
+
+                <!-- Multiple image upload -->
+                <div class="form-group">
+                    <label class="form-label">PRODUCT IMAGES (multiple)</label>
+                    <div class="file-upload">
+                        <input type="file" id="productImages" name="images[]" multiple accept="image/*">
+                        <label for="productImages" class="upload-label">
+                            <div class="upload-icon">✧</div>
+                            <div>
+                                <strong>Click to upload</strong>
+                                <p style="font-size: 0.8rem;">PNG, JPG, GIF up to 5MB</p>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="file-list" id="fileList"></div>
+                    <div class="image-preview" id="imagePreview"></div>
+                    <div class="form-note">Upload multiple images. First image will be used as primary.</div>
+                </div>
+
+                <button type="submit" class="btn-glow">SUBMIT PRODUCT</button>
+            </form>
+        </div>
+
+        <!-- PRODUCT LIST -->
+        <div class="form-panel">
+            <h2 class="form-title">EXISTING PRODUCTS</h2>
+            <div class="product-grid-admin" id="productListContainer">
+                {% if products %}
+                    {% for product in products %}
+                    <div class="product-admin-card" data-product-id="{{ product.id }}">
+                        {% if product.image_urls and product.image_urls|length > 0 %}
+                        <img src="{{ product.image_urls[0] }}" class="product-thumb" alt="{{ product.name }}" loading="lazy">
+                        {% else %}
+                        <div class="product-thumb" style="background: #2f242b; display: flex; align-items: center; justify-content: center; color: #6f4d5e;">no image</div>
+                        {% endif %}
+
+                        <div style="font-size:1.2rem;">{{ product.name }}</div>
+                        <div style="font-size:0.9rem;">₦{{ "{:,.0f}".format(product.price) }} · {{ product.category.name|upper if product.category else 'UNCATEGORIZED' }}</div>
+
+                        <!-- Size Badges with Stock Levels -->
+                        <div class="size-badges">
+                            {% if product.sizes %}
+                                {% for size, qty in product.sizes.items() %}
+                                    {% if qty > 0 %}
+                                        {% if qty < 3 %}
+                                        <span class="size-badge" style="background: rgba(180, 130, 50, 0.2); border-color: #c9a45b; color: #ffd9a3; animation: pulse 1.5s infinite;">
+                                            {{ size }}: {{ qty }} ⚠️
+                                        </span>
+                                        {% elif qty < 10 %}
+                                        <span class="size-badge" style="background: rgba(200, 150, 170, 0.2);">
+                                            {{ size }}: {{ qty }}
+                                        </span>
+                                        {% else %}
+                                        <span class="size-badge" style="background: rgba(70, 130, 100, 0.2); border-color: #5a9e7a; color: #b8e0cb;">
+                                            {{ size }}: {{ qty }} ✓
+                                        </span>
+                                        {% endif %}
+                                    {% else %}
+                                    <span class="size-badge out-of-stock" style="opacity: 0.4; border-color: #b55a5a; color: #ffb3b3;">
+                                        {{ size }}: 0 ✗
+                                    </span>
+                                    {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                <span class="size-badge">No sizes set</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Stock Display with Visual Indicator -->
+                        <div class="product-stats">
+                            {% if product.stock == 0 %}
+                                <span class="stock-badge sold-out">SOLD OUT</span>
+                            {% elif product.stock < 5 %}
+                                <span class="stock-badge low-stock">⚠️ ONLY {{ product.stock }} LEFT</span>
+                            {% elif product.stock < 10 %}
+                                <span class="stock-badge">{{ product.stock }} IN STOCK</span>
+                            {% else %}
+                                <span class="stock-badge in-stock">✓ {{ product.stock }} IN STOCK</span>
+                            {% endif %}
+                            <span>{{ product.sold_count }} sold</span>
+                        </div>
+
+                        <!-- Quick Stock Update -->
+                        <form method="POST" action="/admin/update-stock/{{ product.id }}" class="stock-update">
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; width: 100%;">
+                                {% if product.sizes %}
+                                    {% for size in ['XS', 'S', 'M', 'L', 'XL', 'XXL'] %}
+                                        {% if size in product.sizes %}
+                                        <div style="flex: 1; min-width: 70px;">
+                                            <label style="display: block; font-size: 0.7rem; color: #b295aa;">{{ size }}</label>
+                                            <input type="number" name="size_{{ size }}" value="{{ product.sizes.get(size, 0) }}" min="0" style="width: 100%;">
+                                        </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                            <button type="submit" class="icon-btn" style="width: 100%; margin-top: 0.5rem;">UPDATE STOCK</button>
+                        </form>
+
+                        <div class="row-actions">
+                            <button class="icon-btn edit-product" onclick="openEditModal({{ product.id }})">EDIT</button>
+                            <button class="icon-btn delete-product" onclick="deleteProduct({{ product.id }})">DELETE</button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p style="text-align: center; padding: 2rem; color: #9a8793;">No products yet. Add your first product above.</p>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    <!-- ORDERS SECTION -->
+    <section id="orders" class="admin-section">
+        <div class="form-panel">
+            <h2 class="form-title">ORDER MANAGEMENT</h2>
+
+            <!-- Order Stats -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                <div style="background: rgba(30,20,25,0.7); padding: 1rem; border-radius: 30px; text-align: center;">
+                    <div style="color: #b295aa;">TOTAL</div>
+                    <div style="font-size: 1.5rem; color: #ffd2e6;">{{ orders|length }}</div>
+                </div>
+                <div style="background: rgba(30,20,25,0.7); padding: 1rem; border-radius: 30px; text-align: center;">
+                    <div style="color: #b295aa;">PENDING</div>
+                    <div style="font-size: 1.5rem; color: #ffd9a3;">{{ orders|selectattr('delivery_status', 'equalto', 'pending')|list|length }}</div>
+                </div>
+                <div style="background: rgba(30,20,25,0.7); padding: 1rem; border-radius: 30px; text-align: center;">
+                    <div style="color: #b295aa;">DELIVERED</div>
+                    <div style="font-size: 1.5rem; color: #b8e0cb;">{{ orders|selectattr('delivery_status', 'equalto', 'delivered')|list|length }}</div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="orders-table">
+                    <thead>
+                        <tr>
+                            <th>ORDER ID</th>
+                            <th>CUSTOMER</th>
+                            <th>ITEMS</th>
+                            <th>AMOUNT</th>
+                            <th>PAYMENT</th>
+                            <th>DELIVERY</th>
+                            <th>ACTION</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if orders %}
+                            {% for order in orders %}
+                            <tr data-order-id="{{ order.id }}" data-customer-email="{{ order.customer_email }}" data-customer-name="{{ order.customer_name }}">
+                                <td>#{{ order.order_number }}</td>
+                                <td>
+                                    <div>{{ order.customer_name }}</div>
+                                    <div style="font-size: 0.7rem; color: #b295aa;">{{ order.customer_email }}</div>
+                                </td>
+                                <td>
+                                    {% for item in order.items %}
+                                        <div style="font-size: 0.75rem; margin-bottom: 0.2rem;">
+                                            {{ item.product.name }} ({{ item.size }}) x{{ item.quantity }}
+                                        </div>
+                                    {% endfor %}
+                                </td>
+                                <td>₦{{ "{:,.0f}".format(order.total_amount) }}</td>
+                                <td>
+                                    <span class="status-badge {% if order.payment_status == 'paid' %}in-stock{% else %}low-stock{% endif %}">
+                                        {{ order.payment_status|upper }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="status-badge {% if order.delivery_status == 'delivered' %}in-stock{% else %}low-stock{% endif %}">
+                                        {{ order.delivery_status|upper }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if order.delivery_status != 'delivered' %}
+                                    <button class="mark-delivered" data-order-id="{{ order.id }}">✔ MARK</button>
+                                    {% else %}
+                                    <button class="mark-delivered" disabled style="opacity:0.4;">DONE</button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr><td colspan="7" style="text-align: center; padding: 2rem;">No orders yet</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- CUSTOMERS SECTION -->
+    <section id="customers" class="admin-section">
+        <div class="form-panel">
+            <h2 class="form-title">CUSTOMER MANAGEMENT</h2>
+
+            <!-- Customer Stats -->
+            <div class="customer-stats">
+                <div class="stat-box">
+                    <div class="number">{{ customers|length if customers else 0 }}</div>
+                    <div class="label">TOTAL CUSTOMERS</div>
+                </div>
+                <div class="stat-box">
+                    <div class="number">{{ total_orders }}</div>
+                    <div class="label">TOTAL ORDERS</div>
+                </div>
+                <div class="stat-box">
+                    <div class="number">₦{{ "%.0f"|format(revenue/total_orders if total_orders > 0 else 0) }}</div>
+                    <div class="label">AVG ORDER</div>
+                </div>
+            </div>
+
+            <!-- Search -->
+            <div class="search-box">
+                <input type="text" id="customerSearch" class="search-input" placeholder="Search customers...">
+            </div>
+
+            <!-- Customers Table -->
+            <div class="table-container">
+                <table class="customers-table">
+                    <thead>
+                        <tr>
+                            <th>CUSTOMER</th>
+                            <th>CONTACT</th>
+                            <th>LOCATION</th>
+                            <th>ORDERS</th>
+                            <th>SPENT</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customerTableBody">
+                        {% if customers %}
+                            {% for customer in customers %}
+                            <tr class="customer-row">
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <div class="customer-avatar">{{ customer.name[0]|upper }}</div>
+                                        <div>
+                                            <div style="color: #ffd2e6;">{{ customer.name|title }}</div>
+                                            <div style="font-size: 0.7rem; color: #b295aa;">ID: #{{ customer.id }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div style="color: #ffd2e6;">{{ customer.email }}</div>
+                                    <div style="color: #b295aa; font-size: 0.8rem;">{{ customer.phone or 'No phone' }}</div>
+                                </td>
+                                <td>
+                                    {% if customer.city and customer.state %}
+                                        <div style="color: #ffd2e6;">{{ customer.city }}</div>
+                                        <div style="color: #b295aa; font-size: 0.8rem;">{{ customer.state }}</div>
+                                    {% else %}
+                                        <span style="color: #b295aa;">—</span>
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: center;">
+                                    <span style="background: rgba(200,142,170,0.2); padding: 0.2rem 0.8rem; border-radius: 20px; color: #ffd2e6;">
+                                        {{ customer.orders|length if customer.orders else 0 }}
+                                    </span>
+                                </td>
+                                <td style="color: #f5c6d5; font-weight: 600;">
+                                    {% set total_spent = 0 %}
+                                    {% for order in customer.orders %}
+                                        {% if order.payment_status == 'paid' %}
+                                            {% set total_spent = total_spent + order.total_amount %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    ₦{{ "{:,.0f}".format(total_spent) }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="5" style="padding: 2rem; text-align: center; color: #9a8793;">
+                                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">👥</div>
+                                    <p>No customers yet</p>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- EMAIL QUEUE SECTION -->
+    <section id="email-queue" class="admin-section">
+        <div class="form-panel">
+            <h2 class="form-title">📧 EMAIL QUEUE MANAGEMENT</h2>
+
+            <!-- Queue Stats -->
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                <div style="background: rgba(30,20,25,0.7); padding: 1rem; border-radius: 30px; text-align: center;">
+                    <div style="color: #b295aa;">Total</div>
+                    <div style="font-size: 1.5rem; color: #ffd2e6;" id="queue-total">0</div>
+                </div>
+                <div style="background: rgba(30,20,25,0.7); padding: 1rem; border-radius: 30px; text-align: center;">
+                    <div style="color: #b295aa;">Failed</div>
+                    <div style="font-size: 1.5rem; color: #ffb3b3;" id="queue-failed">0</div>
+                </div>
+            </div>
+
+            <!-- Manual Retry Button -->
+            <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem;">
+                <form method="POST" action="/admin/retry-emails" style="width: 100%;">
+                    <button type="submit" class="btn-glow" style="background: #c88eaa; color: black; padding: 0.8rem;">
+                        🔄 RETRY FAILED EMAILS
+                    </button>
+                </form>
+                <button class="btn-glow" onclick="refreshQueueStats()" style="background: transparent; padding: 0.8rem;">
+                    🔄 REFRESH STATS
+                </button>
+            </div>
+
+            <!-- Failed Emails Table -->
+            <h3 style="color: #ffd2e6; margin-bottom: 1rem;">Failed Emails Queue</h3>
+            <div class="table-container">
+                <table class="orders-table" id="failed-emails-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Type</th>
+                            <th>Recipient</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="failed-emails-body">
+                        <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- EDIT MODAL -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 1.5rem; color: #ffd2e6; font-size: 1.5rem;">EDIT PRODUCT</h2>
+            <form id="editForm" method="POST" enctype="multipart/form-data">
+                <input type="hidden" id="editProductId" name="product_id">
+
+                <div class="form-group">
+                    <label class="form-label">NAME</label>
+                    <input type="text" id="editName" name="name" class="form-control" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">PRICE (₦)</label>
+                        <input type="number" id="editPrice" name="price" class="form-control" step="0.01" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">CATEGORY</label>
+                        <select id="editCategory" name="category" class="form-select" required>
+                            <option value="">Select Category</option>
+                            {% if categories %}
+                                {% for category in categories %}
+                                <option value="{{ category.id }}">{{ category.name|upper }}</option>
+                                {% endfor %}
+                            {% endif %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">SIZE INVENTORY</label>
+                    <div class="size-grid" id="editSizeGrid">
+                        {% for size in ['XS', 'S', 'M', 'L', 'XL', 'XXL'] %}
+                        <div class="size-item">
+                            <label class="size-label">{{ size }}</label>
+                            <input type="number" id="editSize_{{ size }}" name="size_{{ size }}" class="size-input" min="0" value="0">
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">DESCRIPTION</label>
+                    <textarea id="editDescription" name="description" class="form-control" rows="3"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">ADD MORE IMAGES</label>
+                    <input type="file" name="images[]" multiple accept="image/*" class="form-control">
+                </div>
+
+                <div style="display: flex; gap: 0.8rem; margin-top: 1.5rem; flex-wrap: wrap;">
+                    <button type="submit" class="icon-btn" style="flex: 2; min-height: 48px;">SAVE CHANGES</button>
+                    <button type="button" class="icon-btn" onclick="closeEditModal()" style="flex: 1; min-height: 48px;">CANCEL</button>
+                </div>
+            </form>
+        </div>
     </div>
+</div>
 
-    <script>
-        // Password Toggle
-        function togglePassword() {
-            const passwordInput = document.getElementById('password');
-            const toggleBtn = document.getElementById('toggleBtn');
+<script>
+    (function() {
+        // ---- SECTION TOGGLES ----
+        const navItems = document.querySelectorAll('.nav-item[data-section]');
+        const sections = {
+            dashboard: document.getElementById('dashboard'),
+            products: document.getElementById('products'),
+            orders: document.getElementById('orders'),
+            customers: document.getElementById('customers'),
+            'email-queue': document.getElementById('email-queue')
+        };
 
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                toggleBtn.textContent = '🔒';
-            } else {
-                passwordInput.type = 'password';
-                toggleBtn.textContent = '👁️';
-            }
-        }
+        window.activateSection = function(sectionId) {
+            Object.values(sections).forEach(s => {
+                if (s) s.classList.remove('active-section');
+            });
+            if (sections[sectionId]) sections[sectionId].classList.add('active-section');
+            navItems.forEach(item => item.classList.remove('active-nav'));
+            const activeNav = document.querySelector(`.nav-item[data-section="${sectionId}"]`);
+            if (activeNav) activeNav.classList.add('active-nav');
+        };
 
-        // Toast Notification
-        function showToast(message, type = 'success') {
+        navItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                const sec = e.target.dataset.section;
+                if (sec === 'logout') {
+                    showToast('logging out ...');
+                    window.location.href = '/logout';
+                    return;
+                }
+                window.activateSection(sec);
+            });
+        });
+
+        // ---- TOAST HELPER ----
+        window.showToast = function(msg, type = 'success') {
             const toast = document.createElement('div');
-            toast.className = `toast ${type === 'error' ? 'error' : ''}`;
-            toast.textContent = message;
+            toast.className = 'toast';
+            toast.textContent = msg;
+            toast.style.background = type === 'error' ? '#3d1a1a' : '#1d141b';
+            toast.style.borderColor = type === 'error' ? '#b55a5a' : '#d49bb2';
             document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        };
 
-            setTimeout(() => {
-                toast.remove();
-            }, 3000);
+        // ---- DELIVERY CONFIRMATION ----
+        window.confirmDelivery = function(orderId) {
+            if (!confirm('Mark this order as delivered? A confirmation email will be sent to the customer.')) return;
+
+            showToast('Processing delivery confirmation...');
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/admin/update-order/${orderId}`;
+            form.style.display = 'none';
+
+            const statusInput = document.createElement('input');
+            statusInput.type = 'hidden';
+            statusInput.name = 'status';
+            statusInput.value = 'delivered';
+            form.appendChild(statusInput);
+
+            document.body.appendChild(form);
+            form.submit();
+        };
+
+
+        // ---- EMAIL QUEUE FUNCTIONS ----
+        window.refreshQueueStats = function() {
+            fetch('/admin/email-queue-data')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('queue-total').textContent = data.stats.total || 0;
+                    document.getElementById('queue-failed').textContent = data.stats.failed || 0;
+                    const tbody = document.getElementById('failed-emails-body');
+                    if (data.emails && data.emails.length > 0) {
+                        tbody.innerHTML = data.emails.slice(0, 5).map(email => `
+                            <tr>
+                                <td>#${email.id}</td>
+                                <td>${email.email_type}</td>
+                                <td>${email.recipient}</td>
+                                <td>
+                                    <span class="status-badge ${email.status === 'failed' ? 'sold-out' : 'low-stock'}">
+                                        ${email.status.toUpperCase()}
+                                    </span>
+                                </td>
+                            </tr>
+                        `).join('');
+                    } else {
+                        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No failed emails 🎉</td></tr>';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('failed-emails-body').innerHTML =
+                        '<tr><td colspan="4" style="text-align: center; color: #ffb3b3;">Error loading data</td></tr>';
+                });
         }
 
-        // Form Validation
-        function validateForm(email, password) {
-            let isValid = true;
-
-            document.getElementById('email').classList.remove('error');
-            document.getElementById('password').classList.remove('error');
-            document.getElementById('emailError').textContent = '';
-            document.getElementById('passwordError').textContent = '';
-
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!email) {
-                document.getElementById('email').classList.add('error');
-                document.getElementById('emailError').textContent = 'Email required';
-                isValid = false;
-            } else if (!emailRegex.test(email)) {
-                document.getElementById('email').classList.add('error');
-                document.getElementById('emailError').textContent = 'Invalid email';
-                isValid = false;
+        // ---- CATEGORY MANAGEMENT ----
+        window.deleteCategory = async function(categoryId) {
+            if (!confirm('Delete this category?')) return;
+            try {
+                const response = await fetch(`/admin/delete-category/${categoryId}`, { method: 'DELETE' });
+                const data = await response.json();
+                if (data.success) {
+                    showToast('Category deleted');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(data.error, 'error');
+                }
+            } catch (error) {
+                showToast('Error deleting category', 'error');
             }
+        };
 
-            if (!password) {
-                document.getElementById('password').classList.add('error');
-                document.getElementById('passwordError').textContent = 'Password required';
-                isValid = false;
-            } else if (password.length < 4) {
-                document.getElementById('password').classList.add('error');
-                document.getElementById('passwordError').textContent = 'Min 6 characters';
-                isValid = false;
-            }
+        // ---- MULTI IMAGE UPLOAD ----
+        const fileInput = document.getElementById('productImages');
+        const fileList = document.getElementById('fileList');
+        const imagePreview = document.getElementById('imagePreview');
 
-            return isValid;
+        let selectedFiles = [];
+
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                const incomingFiles = Array.from(e.target.files);
+                incomingFiles.forEach(file => {
+                    if (!selectedFiles.some(f => f.name === file.name)) {
+                        selectedFiles.push(file);
+                    }
+                });
+                selectedFiles = selectedFiles.slice(0, 10);
+                syncInputAndPreview();
+            });
         }
 
-        // Login Handler
-        async function handleLogin(event) {
-            event.preventDefault();
+        function syncInputAndPreview() {
+            const dt = new DataTransfer();
+            selectedFiles.forEach(file => dt.items.add(file));
+            if (fileInput) fileInput.files = dt.files;
 
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            const remember = document.getElementById('remember').checked;
-            const loginBtn = document.getElementById('loginBtn');
+            if (fileList) fileList.innerHTML = '';
+            if (imagePreview) imagePreview.innerHTML = '';
 
-            if (!validateForm(email, password)) {
-                return;
+            selectedFiles.forEach((file, index) => {
+                if (fileList) {
+                    const item = document.createElement('div');
+                    item.className = 'file-item';
+                    item.innerHTML = `
+                        <span>${file.name}</span>
+                        <span class="remove-file" onclick="removeFile(${index})">×</span>
+                    `;
+                    fileList.appendChild(item);
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    if (imagePreview) {
+                        const preview = document.createElement('div');
+                        preview.className = 'preview-item';
+                        if (index === 0) preview.classList.add('primary');
+                        preview.innerHTML = `<img src="${e.target.result}" alt="preview">`;
+                        imagePreview.appendChild(preview);
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        window.removeFile = function(index) {
+            selectedFiles.splice(index, 1);
+            syncInputAndPreview();
+        };
+
+        // ---- EDIT MODAL FUNCTIONS ----
+        const editModal = document.getElementById('editModal');
+        const editForm = document.getElementById('editForm');
+
+        window.openEditModal = async function(productId) {
+            try {
+                const response = await fetch(`/api/products/${productId}`);
+                const product = await response.json();
+
+                document.getElementById('editProductId').value = product.id;
+                document.getElementById('editName').value = product.name;
+                document.getElementById('editPrice').value = product.price;
+                document.getElementById('editDescription').value = product.description || '';
+
+                if (product.sizes) {
+                    for (const [size, qty] of Object.entries(product.sizes)) {
+                        const sizeInput = document.getElementById(`editSize_${size}`);
+                        if (sizeInput) sizeInput.value = qty;
+                    }
+                }
+
+                const categorySelect = document.getElementById('editCategory');
+                if (product.category_id) categorySelect.value = product.category_id;
+
+                editForm.action = `/admin/edit-product/${productId}`;
+                editModal.classList.add('active-modal');
+            } catch (error) {
+                showToast('Error loading product', 'error');
             }
+        };
 
-            loginBtn.disabled = true;
-            loginBtn.classList.add('loading');
+        window.closeEditModal = function() {
+            editModal.classList.remove('active-modal');
+        };
+
+        window.addEventListener('click', (e) => {
+            if (e.target === editModal) closeEditModal();
+        });
+
+        // ---- DELETE PRODUCT ----
+        window.deleteProduct = async function(productId) {
+            if (!confirm('⚠️ Delete this product? This action cannot be undone.')) return;
+
+            showToast('Deleting product...');
 
             try {
-                const response = await fetch('/api/admin/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password, remember })
-                });
-
+                const response = await fetch(`/admin/delete-product/${productId}`, { method: 'DELETE' });
                 const data = await response.json();
 
                 if (data.success) {
-                    if (remember) {
-                        localStorage.setItem('adminToken', data.token);
-                    } else {
-                        sessionStorage.setItem('adminToken', data.token);
+                    showToast('✅ Product deleted');
+                    const card = document.querySelector(`.product-admin-card[data-product-id="${productId}"]`);
+                    if (card) {
+                        card.style.transform = 'scale(0.8)';
+                        card.style.opacity = '0';
+                        setTimeout(() => card.remove(), 300);
                     }
-
-                    showToast('Login successful!');
-
-                    setTimeout(() => {
-                        window.location.href = '/admin';
-                    }, 1000);
                 } else {
-                    showToast(data.error || 'Invalid credentials', 'error');
-                    loginBtn.disabled = false;
-                    loginBtn.classList.remove('loading');
+                    showToast(`❌ ${data.error || 'Error deleting product'}`, 'error');
                 }
             } catch (error) {
-                showToast('Connection error', 'error');
-                loginBtn.disabled = false;
-                loginBtn.classList.remove('loading');
+                showToast('❌ Error deleting product', 'error');
             }
+        };
+
+        // ---- CUSTOMER SEARCH ----
+        const searchInput = document.getElementById('customerSearch');
+        if (searchInput) {
+            searchInput.addEventListener('keyup', function() {
+                const searchTerm = this.value.toLowerCase();
+                const rows = document.querySelectorAll('#customerTableBody tr');
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(searchTerm) ? '' : 'none';
+                });
+            });
         }
 
-        document.addEventListener('DOMContentLoaded', async function() {
-            const token = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+        // Add click handlers for mark-delivered buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.mark-delivered').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const orderId = this.getAttribute('data-order-id');
+                    if (orderId) window.confirmDelivery(parseInt(orderId));
+                });
+            });
 
-            if (token) {
-                try {
-                    // Verify token with the server
-                    const response = await fetch('/api/admin/verify-token', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
-
-                    const data = await response.json();
-
-                    if (data.valid) {
-                        // Token is valid → redirect
-                        window.location.href = '/admin';
-                    } else {
-                        // Token invalid → remove it
-                        localStorage.removeItem('adminToken');
-                        sessionStorage.removeItem('adminToken');
-                    }
-                } catch (err) {
-                    console.error('Token verification failed', err);
-                    localStorage.removeItem('adminToken');
-                    sessionStorage.removeItem('adminToken');
-                }
-            }
+            if (typeof refreshQueueStats === 'function') refreshQueueStats();
         });
 
-    </script>
+        // Show any flash messages as toasts
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    showToast('{{ message }}', '{{ category }}');
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    })();
+</script>
 </body>
 </html>
