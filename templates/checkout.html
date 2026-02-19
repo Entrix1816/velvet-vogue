@@ -899,6 +899,9 @@
                 payment_method: selectedPayment === 'delivery' ? 'Pay on Delivery' : 'Paystack'
             };
 
+            // Add debug logging
+            console.log('Sending order data:', orderData);
+
             if (selectedPayment === 'delivery') {
                 await submitOrder(orderData);
             } else {
