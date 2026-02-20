@@ -871,6 +871,7 @@
         async function syncCartToServer() {
             await fetch('/api/cart/sync', {
                 method: 'POST',
+                credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ items: cart })
             });
@@ -962,30 +963,31 @@
             try {
                 const response = await fetch('/api/checkout', {
                     method: 'POST',
+                    credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(orderData)
                 });
 
                 const result = await response.json();
 
-                if (result.success) {
-                    // Clear cart from sessionStorage
-                    sessionStorage.removeItem('velvetCart');
+                console.log("Checkout result:", result);   // 👈 IMPORTANT
 
-                    // Show success modal
+                if (result.success) {
+                    sessionStorage.removeItem('velvetCart');
                     document.getElementById('orderNumber').textContent = result.order_number;
                     document.getElementById('successModal').classList.add('active');
-
-                    // Reset form
                     resetButton();
                 } else {
-                    throw new Error(result.error);
+                    showToast(result.error || 'Checkout failed', 'error'); // 👈 SHOW REAL ERROR
+                    resetButton();
                 }
             } catch (error) {
-                showToast('Error processing order', 'error');
+                console.error("Checkout crash:", error);
+                showToast(error.message || 'Network error', 'error');
                 resetButton();
             }
         }
+
 
         function resetButton() {
             const confirmBtn = document.getElementById('confirmBtn');
