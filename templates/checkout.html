@@ -869,26 +869,37 @@
         }
 
         async function syncCartToServer() {
-            await fetch('/api/cart/sync', {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ items: cart })
-            });
+            try {
+                const response = await fetch('/api/cart/sync', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items: cart })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to sync cart to server');
+                }
+            } catch (error) {
+                console.error("Sync cart error:", error);
+                showToast('Error syncing cart. Please try again.', 'error');
+                throw error;  // Important: stops order processing if sync fails
+            }
         }
 
 
-        // Process order
         async function processOrder() {
             if (!validateForm()) return;
 
-            // sync client cart to server
-            await syncCartToServer();
+            try {
+                // sync client cart to server
+                await syncCartToServer();
+            } catch (error) {
+                // Stop processing if cart sync fails
+                return;
+            }
 
-            const confirmBtn = document.getElementById('confirmBtn');
-            confirmBtn.disabled = true;
-            confirmBtn.innerHTML = '<span class="loading-spinner"></span> PROCESSING...';
-
+            // continue with order submission (Pay on Delivery or Paystack)
             const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
             const orderData = {
@@ -917,7 +928,6 @@
                 initializePaystack(orderData);
             }
         }
-
 
         // Initialize Paystack
         function initializePaystack(orderData) {
