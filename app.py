@@ -1298,12 +1298,19 @@ def api_checkout():
 
             # Only deduct stock if payment is confirmed
             if data.get('payment_status') == 'paid':
+                # deduct stock, update sold count
                 sizes = dict(product.sizes)
                 sizes[item['size']] -= item['quantity']
                 product.sizes = sizes
                 product.stock = sum(sizes.values())
                 product.sold_count += item['quantity']
                 logger.info(f"Stock updated for {product.name}")
+            else:
+                # log warning and send error to frontend
+                logger.warning(
+                    f"Payment not confirmed for order: {order.id}. Payment status: {data.get('payment_status')}")
+                return jsonify(
+                    {'success': False, 'error': 'Payment not confirmed. Please check your payment method.'}), 400
 
         db.session.commit()
         logger.info(f"Order {order.order_number} committed to database")
