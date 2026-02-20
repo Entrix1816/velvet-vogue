@@ -123,9 +123,21 @@ def save_cart(cart):
 def calculate_cart_total(cart):
     """Calculate total price of items in cart"""
     total = 0
-    for item in cart.values():
-        total += item['price'] * item['quantity']
+
+    if isinstance(cart, dict):
+        items = cart.values()
+    elif isinstance(cart, list):
+        items = cart
+    else:
+        items = []
+
+    for item in items:
+        price = float(item.get('price', 0))
+        quantity = int(item.get('quantity', 0))
+        total += price * quantity
+
     return total
+
 
 
 def check_stock_availability(product_id, size, quantity):
