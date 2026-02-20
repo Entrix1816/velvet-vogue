@@ -110,8 +110,22 @@ def db_session_management():
 
 # -------------------- CART HELPER FUNCTIONS --------------------
 def get_cart():
-    """Get current cart from session with size information"""
-    return session.get('cart', {})
+    """Get current cart from session, handling both dict and list formats"""
+    cart = session.get('cart', {})
+
+    # If cart is a list (from frontend), convert to dictionary format
+    if isinstance(cart, list):
+        dict_cart = {}
+        for item in cart:
+            # Create a unique key for each item
+            cart_key = f"{item.get('product_id')}_{item.get('size', 'OS')}"
+            dict_cart[cart_key] = item
+        # Save the converted format back to session
+        session['cart'] = dict_cart
+        session.modified = True
+        return dict_cart
+
+    return cart
 
 
 def save_cart(cart):
@@ -132,9 +146,10 @@ def calculate_cart_total(cart):
         items = []
 
     for item in items:
-        price = float(item.get('price', 0))
-        quantity = int(item.get('quantity', 0))
-        total += price * quantity
+        if isinstance(item, dict):
+            price = float(item.get('price', 0))
+            quantity = int(item.get('quantity', 0))
+            total += price * quantity
 
     return total
 
@@ -475,8 +490,14 @@ def clear_cart():
 def get_cart_api():
     """Get current cart contents"""
     cart = get_cart()
-    cart_total = calculate_cart_total(cart)
-    item_count = sum(item['quantity'] for item in cart.values())
+
+    # Handle case where cart is a list
+    if isinstance(cart, list):
+        cart_total = sum(float(item.get('price', 0)) * int(item.get('quantity', 0)) for item in cart)
+        item_count = sum(item.get('quantity', 0) for item in cart)
+    else:
+        cart_total = calculate_cart_total(cart)
+        item_count = sum(item['quantity'] for item in cart.values())
 
     return jsonify({
         'success': True,
