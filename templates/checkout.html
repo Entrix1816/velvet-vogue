@@ -890,18 +890,15 @@
 
         async function processOrder() {
             if (!validateForm()) return;
-
+        
             try {
-                // sync client cart to server
                 await syncCartToServer();
             } catch (error) {
-                // Stop processing if cart sync fails
                 return;
             }
-
-            // continue with order submission (Pay on Delivery or Paystack)
+        
             const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
+        
             const orderData = {
                 items: cart.map(item => ({
                     product_id: item.product_id,
@@ -919,15 +916,16 @@
                 subtotal: subtotal,
                 delivery_fee: deliveryFee,
                 total: subtotal + deliveryFee,
-                payment_method: selectedPayment === 'delivery' ? 'Pay on Delivery' : 'Paystack'
+                payment_method: selectedPayment === 'delivery' ? 'Pay on Delivery' : 'Paystack',
+                payment_status: selectedPayment === 'delivery' ? 'pending' : 'paid'  // 👈 ADD THIS
             };
-
+        
             if (selectedPayment === 'delivery') {
                 await submitOrder(orderData);
             } else {
                 initializePaystack(orderData);
             }
-        }
+        }        
 
         // Initialize Paystack
         function initializePaystack(orderData) {
